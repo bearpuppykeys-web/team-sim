@@ -61,7 +61,7 @@
           <div><h3>장면별 수치와 진행</h3><div class="tablewrap"><table class="vt" id="vtable"></table></div></div>
           <div><h3>역할 <span class="sub">학생 이름이 없는 역할은 AI가 맡습니다</span></h3><div class="roles" id="roles"></div></div>
           <div><h3>학생 점검 질문 <span class="sub">조별 화면 ③ 탭에 보입니다 · 1~2개 · 비우면 빠짐</span></h3><div id="qbox" style="display:grid;gap:6px"></div></div>
-          <div class="row"><button class="btn" id="saveBtn" type="button">이 조 시나리오 확정 저장</button></div>
+          <div class="row"><button class="btn" id="saveBtn" type="button">이 조 시나리오 확정 저장</button><span class="status" id="saveStatus2"></span></div>
         </div>
       </div>
     </div>
@@ -194,11 +194,12 @@
   $("saveBtn").onclick = async () => {
     if (!draft) return;
     draft.questions = (draft.questions || []).map(q => String(q || "").trim()).filter(Boolean).slice(0, 2);
-    $("saveBtn").disabled = true; $("saveStatus").textContent = "저장 중…";
+    $("saveBtn").disabled = true; $("saveStatus").textContent = $("saveStatus2").textContent = "저장 중…";
     const r = await TS.call("saveScenario", {pin, g:current, scenario:draft});
     $("saveBtn").disabled = false;
     if (r.ok){ store[current] = JSON.parse(JSON.stringify(draft)); drawSlots(); $("saveStatus").textContent = (TS.GROUPS.find(g=>g.id===current)||{}).label + " 시나리오를 저장했습니다."; }
     else $("saveStatus").textContent = TS.errText(r.error);
+    $("saveStatus2").textContent = $("saveStatus").textContent;
   };
 
   // ---------- live ----------
