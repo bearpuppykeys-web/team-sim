@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261109b">
+<link rel="stylesheet" href="style.css?v=20261109d">
 <meta name="robots" content="noindex">
 </head>
 <body>
@@ -43,7 +43,8 @@
       <div class="card" style="display:grid;gap:10px;align-content:start">
         <h2>1. 학생 시나리오 카드 붙여 넣기</h2>
         <details class="sub"><summary>상황지침 (술기평가 work sheet)</summary><p id="caseText" style="margin:6px 0 0"></p></details>
-        <p class="sub" style="margin:0">조가 제출한 카드를 전부 복사해 붙여 넣고 <b>AI로 변환·점검</b>을 누르세요. 학생 글은 그대로 두고, 확인할 곳만 표시합니다.</p>
+        <p class="sub" style="margin:0" id="noAiNote" hidden><b>AI 없이 진행 중입니다.</b> <b>예시 시나리오 불러오기</b>를 누른 뒤, 오른쪽 칸을 조가 쓴 카드 내용대로 고쳐서 확정 저장하세요.</p>
+        <p class="sub" style="margin:0" id="aiNote">조가 제출한 카드를 전부 복사해 붙여 넣고 <b>AI로 변환·점검</b>을 누르세요. 학생 글은 그대로 두고, 확인할 곳만 표시합니다.</p>
         <textarea id="pasteBox" class="paste" placeholder="시나리오 카드 내용을 붙여 넣으세요 (표째로 복사해도 됩니다)"></textarea>
         <div class="row">
           <button class="btn ai" id="convertBtn" type="button">AI로 변환·점검</button>
@@ -59,7 +60,7 @@
           <label style="font-size:13px;font-weight:700;display:grid;gap:4px" for="gName">조 이름<input type="text" id="gName"></label>
           <label style="font-size:13px;font-weight:700;display:grid;gap:4px" for="gRi">RI sliding scale (BST 구간별 단위)<textarea id="gRi" rows="2"></textarea></label>
           <div><h3>장면별 수치와 진행</h3><div class="tablewrap"><table class="vt" id="vtable"></table></div></div>
-          <div><h3>역할 <span class="sub">학생 이름이 없는 역할은 AI가 맡습니다</span></h3><div class="roles" id="roles"></div></div>
+          <div><h3>역할 <span class="sub" id="rolesNote">학생 이름이 없는 역할은 AI가 맡습니다</span></h3><div class="roles" id="roles"></div></div>
           <div><h3>학생 점검 질문 <span class="sub">조별 화면 ③ 탭에 보입니다 · 1~2개 · 비우면 빠짐</span></h3><div id="qbox" style="display:grid;gap:6px"></div></div>
           <div class="row"><button class="btn" id="saveBtn" type="button">이 조 시나리오 확정 저장</button><span class="status" id="saveStatus2"></span></div>
         </div>
@@ -77,13 +78,19 @@
   </section>
 </div>
 <script>document.write('<script src="config.js?t=' + Date.now() + '"><\/script>');</script>
-<script src="common.js?v=20261109b"></script>
+<script src="common.js?v=20261109d"></script>
 <script>
 (function(){
   const $ = id => document.getElementById(id);
   let pin = "", current = "g1", store = {}, draft = null, timer = null;
   if (TS.DEMO) $("demoNote").hidden = false;
   $("caseText").textContent = TS.CASE.text;
+  // AI 없이 진행: 붙여 넣기·AI 변환 숨기고 예시를 고쳐 쓰게 안내
+  if (!TS.AI_ON){
+    ["pasteBox","convertBtn","aiNote"].forEach(id => $(id).style.display = "none");
+    $("noAiNote").hidden = false;
+    $("rolesNote").textContent = "모든 역할을 학생이 맡습니다 (4명인 조는 보호자 없음)";
+  }
   try{ pin = sessionStorage.getItem("teamSim:pin") || ""; }catch(e){}
   $("pin").value = pin;
 
@@ -186,7 +193,7 @@
       const lab = document.createElement("label"); lab.className = "chk";
       const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = r.aiPlays; cb.id = "ai-"+i; cb.disabled = /간호사/.test(r.role);
       cb.onchange = e => { r.aiPlays = e.target.checked; c.classList.toggle("isai", r.aiPlays); };
-      lab.append(cb, document.createTextNode("AI가 맡음")); h.append(nm, lab);
+      lab.append(cb, document.createTextNode("AI가 맡음")); h.append(nm); if (TS.AI_ON) h.append(lab);
       const ta = document.createElement("textarea"); ta.rows = 2; ta.id = "role-"+i; ta.setAttribute("aria-label", r.role+" 역할 카드"); ta.value = r.persona || ""; ta.oninput = e => r.persona = e.target.value;
       c.append(h, ta); rb.appendChild(c);
     });

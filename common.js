@@ -4,6 +4,7 @@
 (function(){
   const CFG = window.TEAM_SIM_CONFIG || {};
   const DEMO = !CFG.API_URL || /[?&]demo\b/.test(location.search);
+  const AI_ON = CFG.AI !== false;   // config.js AI: false → AI 없이 진행
 
   // 상황지침 (work sheet)
   const CASE = {
@@ -149,7 +150,7 @@
        vitals:{bp:"146/82",hr:"90",rr:"16 (기계환기)",spo2:"97",bt:"37.3",gcs:"9T (E3 VT M5)",pupil:"R 3 즉각 / L 3 즉각",iicp:"없음",lung:"흡인 후 crackle 줄어듦",bst:"268",pu:"",fall:"",look:"편안해 보임, 이전 주사부위(좌측 복부) 경결 없음"}}
     ],
     roles:[
-      {role:"의사", student:"", persona:"신경외과 전문의 이익준. 바쁘고 말이 짧음. 전화로 응답하고, 보고가 불분명하면 되물음. 아는 정보: 의사진료지시서 오더(V/S q1hr, GCS·동공반사 확인, 식사 전 BST 4회/일, RI sliding scale 151–400 mg/dL, IICP 증상 확인). 꼭 할 말: \"환자 상태부터 말씀해 주세요.\" / \"혈당이 몇이에요? 오더대로 RI 주세요.\" 오더 범위를 벗어나거나 IICP 징후가 있으면 지시함. 하지 않을 것: 수치를 먼저 알려 주지 않음, 간호사가 확인할 것을 대신 판단해 주지 않음", aiPlays:true},
+      {role:"의사", student: AI_ON ? "" : "학생5", persona:"신경외과 전문의 이익준. 바쁘고 말이 짧음. 전화로 응답하고, 보고가 불분명하면 되물음. 아는 정보: 의사진료지시서 오더(V/S q1hr, GCS·동공반사 확인, 식사 전 BST 4회/일, RI sliding scale 151–400 mg/dL, IICP 증상 확인). 꼭 할 말: \"환자 상태부터 말씀해 주세요.\" / \"혈당이 몇이에요? 오더대로 RI 주세요.\" 오더 범위를 벗어나거나 IICP 징후가 있으면 지시함. 하지 않을 것: 수치를 먼저 알려 주지 않음, 간호사가 확인할 것을 대신 판단해 주지 않음", aiPlays:AI_ON},
       {role:"간호사1 (리더)", student:"학생1", persona:"", aiPlays:false},
       {role:"간호사2", student:"학생2", persona:"", aiPlays:false},
       {role:"환자 김길동", student:"학생3", persona:"75세 남. 기관내 삽관 상태지만 수업에서는 짧게 말할 수 있음. 수술 후 피곤하고 힘이 없어 힘없이 한두 마디로 대답하고, 장면별 의식 수준(GCS)에 맞게 눈뜨기·손 움직임을 보임. 아는 정보: 자기 이름, 술 마시고 계단에서 넘어진 것, 당뇨로 인슐린을 맞아 온 것, 메스꺼움·구토·두통 없음. 꼭 할 말: \"김길동이요…\"(이름을 물을 때) / \"주사 또 맞아요?\"(장면 2). 하지 않을 것: 길게 말하지 않음, 진단명을 알리지 않음, 묻지 않은 증상을 먼저 말하지 않음", aiPlays:false},
@@ -161,8 +162,8 @@
     issues:[],
     // 14:40 시나리오 점검 때 조에게 던지는 질문 (AI가 만들고 교수님이 다듬어 확정)
     questions:[
-      "장면 2에서 BST 268에 RI 6U를 주기로 했는데, 의사진료지시서의 어느 구간에 해당하는지와 투여 전에 무엇을 확인할지 말해 보세요.",
-      "환자가 말을 할 수 있게 설정했는데도 GCS를 9T (E3 VT M5)로 쓴 이유를 E·V·M별로 설명해 보세요."
+      "환자의 GCS와 의식 상태에 대해 설명해 보세요.",
+      "장면 2에서 RI 투여 전에 무엇을 확인해야 하는지 말해 보세요."
     ]
   };
 
@@ -177,7 +178,7 @@
     sc.roles = ((o&&o.roles)||[]).map(r => ({
       role:r.role||"", student:r.student||"",
       persona:[r.persona, r.knows&&("아는 정보: "+r.knows), r.mustSay&&("꼭 할 말: "+r.mustSay), r.avoid&&("하지 않을 것: "+r.avoid)].filter(Boolean).join(" / "),
-      aiPlays: !!r.aiPlays && !/간호사/.test(r.role||"")
+      aiPlays: AI_ON && !!r.aiPlays && !/간호사/.test(r.role||"")
     }));
     return sc;
   }
@@ -240,7 +241,7 @@
 2) 학생이 비워 둔 수치는 임상적으로 타당한 교육용 값을 채우되, 그 칸마다 issues에 "학생이 비워 둠, 제안값"으로 적으세요.
 3) 조가 반드시 정해야 하는 사항이 빠졌는지 먼저 확인하세요: 활력징후, 동공반사 결과, GCS 및 의식상태, IICP 증상 여부, 폐음(정상·crackle·wheezing 중 무엇인지), BST 수치에 따른 RI sliding scale(ri). 빠진 것은 issues에 적으세요.
    임상적으로 점검하세요: 환자는 기관내 삽관 상태지만 수업에서는 말할 수 있게 설정합니다(환자가 말하는 대본은 문제가 아님). 그래도 GCS 언어반응은 VT로 표기했는지와 E+M 합이 맞는지, 동공 크기·반사가 우/좌로 있는지, 장면 2의 BST가 RI sliding scale의 어느 구간인지와 투여 단위가 맞는지(저혈당 상태에서 인슐린을 주는 설정이 아닌지), IICP 증상 단서, 값이 생리적으로 가능한지, 장면 사이 변화가 논리적인지, 단서가 기대 행동으로 이어지는지. 문제는 issues에 적고 수치는 학생 값을 그대로 두세요.
-4) 역할은 의사, 간호사1 (리더), 간호사2, 환자 김길동, 보호자입니다(4명인 조는 간호사2 없음). 역할표의 이름 그대로 roles에 옮기세요. 학생 이름이 비어 있는 역할은 aiPlays=true. 4명인 조의 간호사2처럼 쓰지 않는 역할은 roles에서 빼세요. 간호사 역할은 항상 aiPlays=false.
+4) 역할은 의사, 간호사1 (리더), 간호사2, 환자 김길동, 보호자입니다(4명인 조는 보호자 없음). 역할표의 이름 그대로 roles에 옮기세요. 학생 이름이 비어 있는 역할은 aiPlays=true. 4명인 조의 보호자처럼 쓰지 않는 역할은 roles에서 빼세요. 간호사 역할은 항상 aiPlays=false.
 5) 역할 카드의 성격·정보·할 말·하지 않을 것을 roles에 옮기세요. SBAR 인수인계를 썼으면 sbar에 옮기세요.
 7) 14:40 시나리오 점검 때 이 조 학생들에게 던질 점검 질문을 questions에 1~2개 쓰세요. 이 조 시나리오에서 환자안전이나 임상적 정확성에 가장 중요한 빈틈(예: RI 단위 근거, 삽관 환자 GCS VT 표기, IICP 판단 근거, 대상자 확인 방법)을 겨냥하고, 답을 알려 주지 말고 근거를 말하게 하는 열린 질문으로, 학생에게 말하듯 한 문장으로 쓰세요. 이 조가 쓴 내용(장면·수치·대사)을 짚어서 묻고, 일반적인 질문은 피하세요.
 6) 대본 표의 줄을 장면별로 모아 그 장면의 script에 "인물: 대사·행동 [수행항목 번호]" 형식으로 한 줄씩 옮기세요(학생 문장 그대로). 대본에 빠진 수행항목 번호(1~11, 27~37; 12~26은 개인 평가로 대신함)가 있으면 issues에 적으세요.
@@ -448,6 +449,6 @@ ${log.filter(e => e.kind !== "members" && e.kind !== "run" && e.kind !== "assess
 
   // 장면 순서: 1 신경계 초기 사정 → 2 인슐린 피하주사 (인슐린 장면 = 0부터 세어 1). 욕창·낙상은 개인 평가
   const INSULIN_SCENE = 1;
-  window.TS = {DEMO, CASE, REF, SCHEDULE, INSULIN_SCENE, SCENE_COUNT, VKEYS, GROUPS, SKILLS, SIM_SKILLS, SKILL_TOTAL, skillSec,
+  window.TS = {DEMO, AI_ON, CASE, REF, SCHEDULE, INSULIN_SCENE, SCENE_COUNT, VKEYS, GROUPS, SKILLS, SIM_SKILLS, SKILL_TOTAL, skillSec,
     ASSESS_CASE, BRADEN, MORSE, ASSESS_KEY, peerText, groupLabelOf, bradenRisk, morseRisk, sumOf, assessText, parseAssess, assessFromLog, EXAMPLE, normalize, call, errText, convertPrompt, parseJSON, rolePrompt, debriefPrompt, skillStatus, fixedDebrief, reportDraft};
 })();

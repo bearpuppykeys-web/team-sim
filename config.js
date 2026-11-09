@@ -3,6 +3,10 @@
 window.TEAM_SIM_CONFIG = {
   API_URL: "https://script.google.com/macros/s/AKfycbysJ-rzqEDIcQmileIt5aT-hTGZhFWWoMmT3-h4bQcs4wtmVmWClaByaLyyyMAif4YS/exec",
 
+  // AI 사용 여부. false = AI 없이 진행 (모든 역할을 학생이 맡고, AI 버튼을 숨김)
+  // Apps Script에 ANTHROPIC_API_KEY를 넣은 뒤 true로 바꾸면 AI가 켜집니다.
+  AI: false,
+
   // 조별 시나리오 카드 (Google 문서 링크, 공유: 링크가 있는 모든 사용자 - 편집자)
   // 비워 둔 조는 원본 시나리오 카드(Claude 문서)가 열립니다.
   CARD_URLS: {
