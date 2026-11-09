@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>팀 시뮬레이션 · 교수자</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<meta name="robots" content="noindex">
+</head>
+<body>
+<div class="wrap">
+  <div class="bar">
+    <div>
+      <h1>팀 시뮬레이션 · 교수자</h1>
+      <div class="sub">전날 저녁: 시나리오 확정 · 수업 중: 세 조 실시간 현황</div>
+    </div>
+    <div class="tabs" role="tablist" id="tabs" hidden>
+      <button class="tab" role="tab" id="tab-prep" aria-selected="true">① 시나리오 준비</button>
+      <button class="tab" role="tab" id="tab-live" aria-selected="false">② 실시간 현황</button>
+    </div>
+  </div>
+  <div class="demo" id="demoNote" hidden>데모 모드입니다. 저장은 이 노트북에만 되고 AI는 예시 답을 냅니다. (데모 비밀번호 1111)</div>
+
+  <section class="card login" id="login">
+    <h2>교수자 확인</h2>
+    <label for="pin">비밀번호 <input type="password" id="pin" autocomplete="off"></label>
+    <button class="btn" id="pinBtn" type="button">들어가기</button>
+    <div class="status" id="pinStatus"></div>
+  </section>
+
+  <!-- PREP -->
+  <section id="prep" hidden style="display:grid;gap:12px">
+    <div class="card" style="padding:10px 14px">
+      <div class="row" style="justify-content:space-between">
+        <div class="row"><b style="font-size:14px">조 선택</b><div class="slots" id="slots"></div></div>
+        <span class="status" id="saveStatus"></span>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card" style="display:grid;gap:10px;align-content:start">
+        <h2>1. 학생 시나리오 카드 붙여 넣기</h2>
+        <details class="sub"><summary>상황지침 (술기평가 work sheet)</summary><p id="caseText" style="margin:6px 0 0"></p></details>
+        <p class="sub" style="margin:0">조가 제출한 카드를 전부 복사해 붙여 넣고 <b>AI로 변환·점검</b>을 누르세요. 학생 글은 그대로 두고, 확인할 곳만 표시합니다.</p>
+        <textarea id="pasteBox" class="paste" placeholder="시나리오 카드 내용을 붙여 넣으세요 (표째로 복사해도 됩니다)"></textarea>
+        <div class="row">
+          <button class="btn ai" id="convertBtn" type="button">AI로 변환·점검</button>
+          <button class="btn ghost" id="exampleBtn" type="button">예시 시나리오 불러오기</button>
+        </div>
+        <div class="status" id="convertStatus"></div>
+        <div id="issuesWrap" hidden><h3>교수님이 확인할 곳</h3><ul class="issues" id="issues"></ul></div>
+      </div>
+      <div class="card" style="display:grid;gap:10px;align-content:start">
+        <h2>2. 확인하고 확정하기</h2>
+        <div id="editEmpty" class="empty">왼쪽에서 변환하거나 예시를 불러오면 여기서 고칠 수 있습니다.</div>
+        <div id="editor" hidden style="display:grid;gap:12px">
+          <label style="font-size:13px;font-weight:700;display:grid;gap:4px" for="gName">조 이름<input type="text" id="gName"></label>
+          <label style="font-size:13px;font-weight:700;display:grid;gap:4px" for="gRi">RI sliding scale (BST 구간별 단위)<textarea id="gRi" rows="2"></textarea></label>
+          <div><h3>장면별 수치와 진행</h3><div class="tablewrap"><table class="vt" id="vtable"></table></div></div>
+          <div><h3>역할 <span class="sub">학생 이름이 없는 역할은 AI가 맡습니다</span></h3><div class="roles" id="roles"></div></div>
+          <div><h3>학생 점검 질문 <span class="sub">조별 화면 ③ 탭에 보입니다 · 1~2개 · 비우면 빠짐</span></h3><div id="qbox" style="display:grid;gap:6px"></div></div>
+          <div class="row"><button class="btn" id="saveBtn" type="button">이 조 시나리오 확정 저장</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- LIVE -->
+  <section id="live" hidden style="display:grid;gap:12px">
+    <div class="row" style="justify-content:space-between">
+      <span class="status" id="liveStatus">불러오는 중…</span>
+      <label class="chk"><input type="checkbox" id="autoToggle" checked> 10초마다 새로고침</label>
+    </div>
+    <div class="gcards" id="gcards"></div>
+  </section>
+</div>
+<script src="config.js"></script>
+<script src="common.js"></script>
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  let pin = "", current = "g1", store = {}, draft = null, timer = null;
+  if (TS.DEMO) $("demoNote").hidden = false;
+  $("caseText").textContent = TS.CASE.text;
+  try{ pin = sessionStorage.getItem("teamSim:pin") || ""; }catch(e){}
+  $("pin").value = pin;
+
+  $("pinBtn").addEventListener("click", async () => {
+    pin = $("pin").value.trim(); $("pinStatus").textContent = "확인 중…";
+    const r = await TS.call("check", {pin});
+    if (!r.ok || !r.teacher){ $("pinStatus").textContent = r.ok ? "비밀번호가 맞지 않습니다." : TS.errText(r.error); return; }
+    try{ sessionStorage.setItem("teamSim:pin", pin); }catch(e){}
+    $("login").hidden = true; $("tabs").hidden = false; showTab("prep"); loadAll();
+  });
+  $("pin").addEventListener("keydown", e => { if (e.key === "Enter") $("pinBtn").click(); });
+
+  function showTab(w){
+    $("tab-prep").setAttribute("aria-selected", String(w==="prep")); $("tab-live").setAttribute("aria-selected", String(w==="live"));
+    $("prep").hidden = w !== "prep"; $("live").hidden = w !== "live";
+    clearInterval(timer);
+    if (w === "live"){ refresh(); timer = setInterval(() => { if ($("autoToggle").checked) refresh(); }, 10000); }
+  }
+  $("tab-prep").onclick = () => showTab("prep"); $("tab-live").onclick = () => showTab("live");
+
+  // ---------- prep ----------
+  async function loadAll(){
+    $("saveStatus").textContent = "불러오는 중…";
+    const r = await TS.call("listScenarios", {pin});
+    if (r.ok){ store = {}; Object.keys(r.scenarios||{}).forEach(k => store[k] = r.scenarios[k].scenario); $("saveStatus").textContent = "확정된 조: " + (Object.keys(store).map(k => (TS.GROUPS.find(g=>g.id===k)||{label:k}).label).join(", ") || "없음"); }
+    else $("saveStatus").textContent = TS.errText(r.error);
+    selectSlot(current);
+  }
+  function drawSlots(){
+    const box = $("slots"); box.innerHTML = "";
+    TS.GROUPS.forEach(g => {
+      const b = document.createElement("button"); b.type = "button"; b.className = "slot"; b.setAttribute("aria-pressed", String(g.id === current));
+      const t = document.createElement("span"); t.textContent = g.label + (store[g.id] && g.id !== "ex" && store[g.id].groupName ? " · " + store[g.id].groupName : "");
+      const s = document.createElement("small"); s.textContent = store[g.id] ? "확정됨" : "비어 있음";
+      b.append(t, s); b.onclick = () => selectSlot(g.id); box.appendChild(b);
+    });
+  }
+  function selectSlot(id){ current = id; draft = store[id] ? JSON.parse(JSON.stringify(store[id])) : null; $("issuesWrap").hidden = true; $("convertStatus").textContent = ""; drawSlots(); renderEditor(); }
+  $("exampleBtn").onclick = () => { draft = JSON.parse(JSON.stringify(TS.EXAMPLE)); renderEditor(); renderIssues([{level:"확인 필요", where:"전체", text:"장면은 2개(신경계 초기 사정, 인슐린 피하주사)이고, 욕창·낙상은 수행 뒤 학생이 각자 평가합니다. RI sliding·등록번호는 학교 자료(의사진료지시서)에 맞췄고, 활력징후·GCS·BST 등 나머지 수치는 Claude가 만든 교육용 값입니다."}]); };
+  $("convertBtn").onclick = async () => {
+    const txt = $("pasteBox").value.trim();
+    if (!txt){ $("convertStatus").textContent = "시나리오 카드 내용을 먼저 붙여 넣으세요."; return; }
+    $("convertBtn").disabled = true; $("convertStatus").textContent = "변환하고 점검하는 중입니다 (30~60초)…";
+    const r = await TS.call("ai", {pin, kind:"convert", prompt: TS.convertPrompt(txt)});
+    $("convertBtn").disabled = false;
+    if (!r.ok){ $("convertStatus").textContent = TS.errText(r.error); return; }
+    try{ draft = TS.normalize(TS.parseJSON(r.text)); }catch(e){ $("convertStatus").textContent = "AI 답을 읽지 못했습니다. 다시 눌러 주세요."; return; }
+    renderEditor(); renderIssues(draft.issues || []);
+    $("convertStatus").textContent = "변환했습니다. 오른쪽에서 확인하고 '확정 저장'을 누르세요.";
+  };
+  function renderIssues(list){
+    $("issuesWrap").hidden = !list.length; const ul = $("issues"); ul.innerHTML = "";
+    list.forEach(it => { const li = document.createElement("li"); li.className = "issue" + (/확인/.test(it.level||"") ? " mild" : ""); const b = document.createElement("b"); b.textContent = (it.level||"확인") + " · " + (it.where||""); li.append(b, document.createTextNode(it.text||"")); ul.appendChild(li); });
+  }
+  function renderEditor(){
+    $("editEmpty").hidden = !!draft; $("editor").hidden = !draft; if (!draft) return;
+    $("gName").value = draft.groupName || ""; $("gName").oninput = e => draft.groupName = e.target.value;
+    $("gRi").value = draft.ri || ""; $("gRi").oninput = e => draft.ri = e.target.value;
+    const t = $("vtable"); t.innerHTML = "";
+    const head = document.createElement("tr"); head.appendChild(Object.assign(document.createElement("th"), {textContent:"항목"}));
+    draft.scenes.forEach((s,i) => {
+      const th = document.createElement("th");
+      const ti = document.createElement("input"); ti.type = "text"; ti.value = s.title; ti.id = "sc-title-"+i; ti.setAttribute("aria-label","장면 "+(i+1)+" 이름"); ti.oninput = e => s.title = e.target.value;
+      const tm = document.createElement("input"); tm.type = "text"; tm.value = s.time; tm.id = "sc-time-"+i; tm.setAttribute("aria-label","장면 "+(i+1)+" 시각"); tm.style.marginTop = "4px"; tm.oninput = e => s.time = e.target.value;
+      th.append(document.createTextNode("장면 "+(i+1)), ti, tm); head.appendChild(th);
+    });
+    t.appendChild(head);
+    const spec = TS.VKEYS.map(([k,l]) => ({label:l, key:k, area:k==="look", get:s=>s.vitals[k], set:(s,v)=>s.vitals[k]=v})).concat([
+      {label:"일어나는 일", key:"event", area:true, get:s=>s.event, set:(s,v)=>s.event=v},
+      {label:"단서", key:"cues", area:true, get:s=>s.cues, set:(s,v)=>s.cues=v},
+      {label:"기대 간호 행동", key:"expected", area:true, get:s=>s.expected, set:(s,v)=>s.expected=v},
+      {label:"다음 장면 조건", key:"advance", area:true, get:s=>s.advance, set:(s,v)=>s.advance=v},
+      {label:"대본", key:"script", area:true, get:s=>s.script, set:(s,v)=>s.script=v}
+    ]);
+    spec.forEach(sp => {
+      const tr = document.createElement("tr"); tr.appendChild(Object.assign(document.createElement("th"), {textContent:sp.label}));
+      draft.scenes.forEach((s,i) => {
+        const td = document.createElement("td"); const el = document.createElement(sp.area ? "textarea" : "input");
+        if (!sp.area) el.type = "text"; else el.rows = 2;
+        el.value = sp.get(s) || ""; el.id = "f-"+sp.key+"-"+i; el.setAttribute("aria-label", sp.label+" 장면 "+(i+1)); el.oninput = e => sp.set(s, e.target.value);
+        td.appendChild(el); tr.appendChild(td);
+      });
+      t.appendChild(tr);
+    });
+    // 학생 점검 질문 (AI 초안 → 교수님이 다듬음)
+    const qb = $("qbox"); qb.innerHTML = "";
+    draft.questions = (draft.questions || []).slice(0, 2);
+    [0, 1].forEach(i => {
+      const ta = document.createElement("textarea"); ta.rows = 2; ta.id = "q-" + i; ta.setAttribute("aria-label", "점검 질문 " + (i+1));
+      ta.placeholder = "점검 질문 " + (i+1) + (i ? " (없으면 비워 두세요)" : "");
+      ta.value = draft.questions[i] || "";
+      ta.oninput = () => { draft.questions[i] = ta.value; };
+      qb.appendChild(ta);
+    });
+    const rb = $("roles"); rb.innerHTML = "";
+    draft.roles.forEach((r,i) => {
+      const c = document.createElement("div"); c.className = "rolecard" + (r.aiPlays ? " isai" : "");
+      const h = document.createElement("div"); h.className = "rolehead";
+      const nm = document.createElement("b"); nm.textContent = r.role + (r.student ? " · " + r.student : "");
+      const lab = document.createElement("label"); lab.className = "chk";
+      const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = r.aiPlays; cb.id = "ai-"+i; cb.disabled = /간호사/.test(r.role);
+      cb.onchange = e => { r.aiPlays = e.target.checked; c.classList.toggle("isai", r.aiPlays); };
+      lab.append(cb, document.createTextNode("AI가 맡음")); h.append(nm, lab);
+      const ta = document.createElement("textarea"); ta.rows = 2; ta.id = "role-"+i; ta.setAttribute("aria-label", r.role+" 역할 카드"); ta.value = r.persona || ""; ta.oninput = e => r.persona = e.target.value;
+      c.append(h, ta); rb.appendChild(c);
+    });
+  }
+  $("saveBtn").onclick = async () => {
+    if (!draft) return;
+    draft.questions = (draft.questions || []).map(q => String(q || "").trim()).filter(Boolean).slice(0, 2);
+    $("saveBtn").disabled = true; $("saveStatus").textContent = "저장 중…";
+    const r = await TS.call("saveScenario", {pin, g:current, scenario:draft});
+    $("saveBtn").disabled = false;
+    if (r.ok){ store[current] = JSON.parse(JSON.stringify(draft)); drawSlots(); $("saveStatus").textContent = (TS.GROUPS.find(g=>g.id===current)||{}).label + " 시나리오를 저장했습니다."; }
+    else $("saveStatus").textContent = TS.errText(r.error);
+  };
+
+  // ---------- live ----------
+  function ago(at){ const s = Math.round((Date.now() - new Date(at).getTime())/1000); return isNaN(s) ? "" : s < 60 ? s + "초 전" : Math.round(s/60) + "분 전"; }
+  async function refresh(){
+    const r = await TS.call("dashboard", {pin});
+    if (!r.ok){ $("liveStatus").textContent = TS.errText(r.error); return; }
+    $("liveStatus").textContent = "마지막 새로고침 " + new Date().toLocaleTimeString("ko-KR");
+    const box = $("gcards"); box.innerHTML = "";
+    TS.GROUPS.filter(g => g.id !== "ex" || (r.groups||{}).ex).forEach(g => {
+      const d = (r.groups||{})[g.id]; const c = document.createElement("div"); c.className = "card gcard";
+      const h = document.createElement("h2"); h.textContent = g.label + (store[g.id] && store[g.id].groupName ? " · " + store[g.id].groupName : ""); c.appendChild(h);
+      // 다른 조가 이 조를 평가한 것
+      const addPeers = () => {
+        const pr = (r.peers || []).filter(p => p.to === g.id);
+        if (!pr.length) return;
+        const pb = document.createElement("div"); pb.className = "assessbox";
+        const ph = document.createElement("b"); ph.textContent = "다른 조 평가"; pb.appendChild(ph);
+        pr.forEach(p => { const dv = document.createElement("div"); dv.textContent = TS.peerText(p); pb.appendChild(dv); });
+        c.appendChild(pb);
+      };
+      if (!d || !d.entries.length){ const e = document.createElement("div"); e.className = "empty"; e.textContent = "아직 시작하지 않았습니다."; c.appendChild(e); addPeers(); box.appendChild(c); return; }
+      const E = d.entries, last = E[E.length-1] || {};
+      const scene = last.scene, sc = store[g.id];
+      const st = document.createElement("div"); st.className = "row";
+      // 회차 종류 (조별 화면이 "회차: 연습 2회" / "회차: 평가" 문장으로 남김)
+      const rk = E.filter(x => x.kind === "run").pop();
+      const rkTxt = rk ? String(rk.text).replace(/^회차:\s*/, "") : "";
+      const pill = document.createElement("span"); pill.className = "pill " + (rkTxt === "평가" ? "eval" : "prac"); pill.textContent = rkTxt || "회차 미표시";
+      const sb = document.createElement("b"); sb.textContent = "장면 " + scene + (sc && sc.scenes[scene-1] ? " · " + sc.scenes[scene-1].title : "");
+      const ag = document.createElement("span"); ag.className = "ago"; ag.textContent = "경과 " + last.t + " · 마지막 기록 " + ago(last.at);
+      st.append(pill, sb, ag); c.appendChild(st);
+      const mem = E.filter(x => x.kind === "members").pop();
+      if (mem){ const md = document.createElement("div"); md.className = "sub"; md.textContent = mem.text; c.appendChild(md); }
+      // work sheet 술기 체크 현황
+      const ss = TS.skillStatus(E);
+      const mini = document.createElement("div"); mini.className = "mini";
+      TS.SIM_SKILLS.forEach(s => {
+        const cell = document.createElement("div"); const bb = document.createElement("b"); bb.textContent = ss.bySec[s.sec].done + "/" + ss.bySec[s.sec].total;
+        cell.append(document.createTextNode(s.sec), bb); mini.appendChild(cell);
+      });
+      const cap = document.createElement("div"); cap.className = "sub"; cap.textContent = `술기 체크 (장면 1~2) ${ss.count}/${ss.total}` + (ss.missing.length && ss.missing.length <= 12 ? " · 빠진 항목 " + ss.missing.map(x => x[0]).join(", ") : "");
+      c.append(cap, mini);
+      addPeers();
+      // 시나리오 점검 질문에 대한 조의 답 (질문마다 마지막 답)
+      const ansMap = {};
+      E.filter(x => x.kind === "checkAnswer").forEach(x => { const m = /^점검 답 (\d+):/.exec(String(x.text)); if (m) ansMap[m[1]] = x.text; });
+      if (Object.keys(ansMap).length){
+        const qa = document.createElement("div"); qa.className = "assessbox";
+        const qh = document.createElement("b"); qh.textContent = "시나리오 점검 질문 답"; qa.appendChild(qh);
+        Object.keys(ansMap).sort().forEach(k => { const d = document.createElement("div"); d.textContent = ansMap[k]; qa.appendChild(d); });
+        c.appendChild(qa);
+      }
+      // 욕창·낙상 개인 평가: 학생별 총점, 교수님 기준과 다른 영역
+      const as = TS.assessFromLog(E);
+      if (as.ind.length){
+        const K = TS.ASSESS_KEY;
+        const diff = p => TS.BRADEN.filter(d => p.b[d.k] !== K.braden[d.k]).map(d => d.label).concat(TS.MORSE.filter(d => p.m[d.k] !== K.morse[d.k]).map(d => d.label));
+        const ab = document.createElement("div"); ab.className = "assessbox";
+        const h3 = document.createElement("b"); h3.textContent = `욕창·낙상 개인 평가 (기준 Braden ${TS.sumOf(TS.BRADEN, K.braden)} · Morse ${TS.sumOf(TS.MORSE, K.morse)})`; ab.appendChild(h3);
+        as.ind.concat(as.fin ? [Object.assign({}, as.fin, {who:"조 최종"})] : []).forEach(p => {
+          const d = diff(p), row = document.createElement("div"); row.className = d.length ? "off" : "";
+          row.textContent = `${p.who}: Braden ${p.bt} · Morse ${p.mt}` + (d.length ? " · 기준과 다름: " + d.join(", ") : " · 기준과 같음");
+          ab.appendChild(row);
+        });
+        c.appendChild(ab);
+      }
+      const ll = document.createElement("div"); ll.className = "loglist";
+      E.slice(-8).reverse().forEach(e => { const row = document.createElement("div"); const t = document.createElement("span"); t.className = "t"; t.textContent = e.t + " · 장면" + e.scene; row.append(t, document.createTextNode(e.text)); ll.appendChild(row); });
+      c.appendChild(ll);
+      const cp = document.createElement("button"); cp.className = "btn ghost"; cp.type = "button"; cp.textContent = "이 조 전체 기록 복사";
+      cp.onclick = async () => { try{ await navigator.clipboard.writeText(E.map(e => `${e.t} 장면${e.scene} ${e.text}`).join("\n")); cp.textContent = "복사했습니다"; }catch(err){ cp.textContent = "복사 실패"; } };
+      c.appendChild(cp);
+      box.appendChild(c);
+    });
+  }
+})();
+</script>
+</body>
+</html>

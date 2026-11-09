@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>팀 시뮬레이션 · 조별 화면</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <div class="bar">
+    <div>
+      <h1>팀 시뮬레이션 · 조별 화면</h1>
+      <div class="sub">김길동님(75세), 개두술·혈종제거술 후 신경계 중환자실 · 우리 조가 만든 시나리오로 진행합니다</div>
+    </div>
+    <span class="sub" id="who"></span>
+  </div>
+  <details class="sched strip" id="schedBox" hidden>
+    <summary><span class="lab">일정</span> <span id="schedNow"></span></summary>
+    <div class="sub" style="margin:6px 0 2px">510호 · 13:00~17:00</div>
+    <div id="schedule"></div>
+  </details>
+  <div class="demo" id="demoNote" hidden>데모 모드입니다. 기록은 이 노트북에만 남고 AI는 예시 답을 냅니다. (데모 수업 코드 0000)</div>
+
+  <!-- login -->
+  <div class="loginwrap" id="login">
+    <h2 class="maintitle">신경계 간호 AI 기반 임상실습 팀시뮬레이션</h2>
+    <section class="card login">
+      <h2>시작하기</h2>
+      <label for="code">수업 코드 <input type="text" id="code" inputmode="numeric" autocomplete="off" placeholder="교수님이 알려 준 코드"></label>
+      <div>
+        <div style="font-size:13px;font-weight:700;margin-bottom:4px">우리 조</div>
+        <div class="slots" id="groupPick"></div>
+      </div>
+      <div>
+        <div style="font-size:13px;font-weight:700;margin-bottom:4px">조원 <span class="sub" style="font-weight:400">학번과 이름 (4~5명)</span></div>
+        <table class="members" id="members"><thead><tr><th scope="col">#</th><th scope="col">학번</th><th scope="col">이름</th></tr></thead><tbody></tbody></table>
+      </div>
+      <button class="btn" id="enterBtn" type="button">시뮬레이션 시작하기</button>
+      <div class="status" id="loginStatus"></div>
+    </section>
+    <!-- 환영 인사: 문구는 여기서 바로 고치면 됩니다 -->
+    <section class="card welcome" aria-labelledby="welcomeTitle">
+      <h2 id="welcomeTitle">환영합니다</h2>
+      <p>신경계 간호 AI 기반 임상실습 팀시뮬레이션에 오신 것을 환영합니다.</p>
+      <p>이번 실습은 <b>AI를 기반으로 운영</b>합니다. 여러분이 조별로 만든 시나리오를 AI가 함께 점검하고, 수행 중에는 필요한 역할을 대신 맡거나 우리 조의 기록을 읽고 디브리핑 질문을 만들어 줍니다.</p>
+      <h3>오늘의 흐름</h3>
+      <ol>
+        <li>상황지침과 work sheet 수행항목을 확인합니다.</li>
+        <li>조원과 역할을 정하고 시나리오와 대본을 씁니다.</li>
+        <li>조별로 연습한 뒤, 시나리오를 구현하고 평가받습니다.</li>
+        <li>디브리핑과 성찰로 마무리합니다.</li>
+      </ol>
+      <p class="sub">AI의 답은 참고용입니다. 수치와 판단은 교재와 교수님의 확인을 기준으로 하고, 실제 환자 정보는 입력하지 마세요.</p>
+    </section>
+  </div>
+
+  <!-- run: 일정 순서의 7단계 탭 -->
+  <section id="runBody" class="stage" hidden>
+    <nav class="stabs" role="tablist" id="stageTabs" aria-label="수업 단계"></nav>
+
+    <!-- ① 오리엔테이션 -->
+    <section class="stage" id="st1" role="tabpanel" hidden>
+      <section class="case" aria-label="상황지침">
+        <b>상황지침</b> <span class="sub">(술기평가 CPX work sheet · 뇌수술환자 신경계사정)</span>
+        <p class="caseText"></p>
+      </section>
+      <div class="card">
+        <h2>수행항목 1~37 <span class="sub">술기 확인 · work sheet</span></h2>
+        <div class="skillref" id="skillRef"></div>
+      </div>
+    </section>
+
+    <!-- ② 조 분배·역할·시나리오 작성 -->
+    <section class="stage" id="st2" role="tabpanel" hidden>
+      <div class="grid2">
+        <div class="card" style="display:grid;gap:8px;align-content:start">
+          <h2>조원 역할</h2>
+          <div class="sub">역할: 의사, 간호사1(리더), 간호사2, 환자, 보호자. 4명인 조는 간호사 1명입니다.</div>
+          <table class="members" id="roleTable"><thead><tr><th scope="col">#</th><th scope="col">조원</th><th scope="col">역할</th></tr></thead><tbody></tbody></table>
+          <div class="row"><button class="btn" id="roleSave" type="button">역할 저장</button><span class="status" id="roleStatus"></span></div>
+        </div>
+        <div class="card" style="display:grid;gap:8px;align-content:start">
+          <h2>시나리오 작성</h2>
+          <p class="sub" style="margin:0">시나리오 카드의 순서대로 역할표, 장면, 대본을 쓰고 교수님께 제출합니다.</p>
+          <div><a class="btn" id="cardLink" target="_blank" rel="noopener">시나리오 카드 열기</a></div>
+          <h3 style="margin-top:6px">정해야 하는 사항</h3>
+          <div class="sub">우리 조가 정한 항목을 체크하세요. 14:40 점검 때 함께 확인합니다.</div>
+          <div id="decideList" style="display:grid;gap:4px"></div>
+          <details class="refbox" open>
+            <summary><b>학교 자료 기준</b> <span class="sub">의사진료지시서 · 욕창/낙상 측정도구</span></summary>
+            <dl class="kv" id="refList"></dl>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- ③ 시나리오 점검 및 확인 -->
+    <section class="stage" id="st3" role="tabpanel" hidden>
+      <div class="card" id="scSummary" style="display:grid;gap:10px"></div>
+    </section>
+
+    <!-- ④ 조별 연습 / ⑤ 구현 및 평가: 같은 시뮬레이션 화면 -->
+    <section class="stage" id="stSim" role="tabpanel" hidden>
+      <div class="card peerbar" id="peerBar" hidden>
+        <div class="row">
+          <button class="slot" type="button" id="modeSelf" aria-pressed="true">우리 조 구현</button>
+          <button class="slot" type="button" id="modePeer" aria-pressed="false">다른 조 평가</button>
+        </div>
+        <div class="sub">구현 순서: 1조 → 2조 → 3조 (조마다 약 15분). 우리 조 차례가 아니면 "다른 조 평가"를 누르고, 지금 구현하는 조를 골라 평가합니다. 세 조가 모두 끝나면 ⑥ 욕창·낙상 개인 평가로 갑니다.</div>
+      </div>
+      <div class="card" id="peerPanel" hidden></div>
+      <div class="card runhead" id="runHead">
+        <div>
+          <div class="row"><b id="runKind" class="pill">연습 1회</b><span class="sub" id="runHint"></span></div>
+        </div>
+        <div class="row"><button class="btn ghost" id="newRunBtn" type="button">새 연습 회차 시작</button><span class="status" id="runStatus"></span></div>
+      </div>
+      <div class="card" id="simWait" hidden></div>
+      <details class="case" id="simCase"><summary><b>상황지침</b></summary><p class="caseText"></p></details>
+      <div class="run" id="simBody">
+        <div style="display:grid;gap:12px">
+          <div class="monitor" aria-label="환자 모니터">
+            <div class="mhead">
+              <span><b>김길동</b> <span id="mCase"></span> · <span id="mGroup"></span></span>
+              <span class="mclock" id="mClock">14:00</span>
+            </div>
+            <div class="vitals">
+              <div class="v hr" id="v-hr"><div class="lab"><span>HR (ECG)</span><span>/min</span></div><div class="num">--</div><div class="when">연결 전</div></div>
+              <div class="v spo2" id="v-spo2"><div class="lab"><span>SpO₂</span><span>%</span></div><div class="num">--</div><div class="when">연결 전</div></div>
+              <div class="v bp" id="v-bp"><div class="lab"><span>BP</span><span>mmHg</span></div><div class="num">--</div><div class="when"></div></div>
+              <div class="v rr" id="v-rr"><div class="lab"><span>RR</span><span>/min</span></div><div class="num">--</div><div class="when"></div></div>
+              <div class="v txt" id="v-gcs"><div class="lab"><span>GCS</span></div><div class="num">--</div><div class="when"></div></div>
+              <div class="v txt" id="v-pupil"><div class="lab"><span>동공 R/L</span></div><div class="num">--</div><div class="when"></div></div>
+              <div class="v txt" id="v-bst"><div class="lab"><span>BST</span><span>mg/dL</span></div><div class="num">--</div><div class="when"></div></div>
+              <div class="v txt" id="v-bt"><div class="lab"><span>BT</span><span>℃</span></div><div class="num">--</div><div class="when"></div></div>
+              <div class="v txt wide" id="v-lung"><div class="lab"><span>폐음 (청진)</span></div><div class="num">--</div><div class="when"></div></div>
+            </div>
+            <div class="measure">
+              <button class="mbtn" data-m="ecg" type="button">심전도 연결</button>
+              <button class="mbtn" data-m="spo2" type="button">산소포화도 연결</button>
+              <button class="mbtn" data-m="pupil" type="button">동공반사 확인</button>
+              <button class="mbtn" data-m="vs" type="button">활력징후 측정</button>
+              <button class="mbtn" data-m="gcs" type="button">GCS 사정</button>
+              <button class="mbtn" data-m="iicp" type="button">IICP 증상 확인</button>
+              <button class="mbtn" data-m="lung" type="button">폐 청진</button>
+              <button class="mbtn" data-m="bst" type="button">혈당 측정</button>
+            </div>
+          </div>
+
+          <div class="card" style="display:grid;gap:8px">
+            <div class="row" style="justify-content:space-between"><h2 style="margin:0">술기 체크리스트 <span class="sub">work sheet</span></h2><b id="skillCount" style="font-family:var(--font-mono)">0/37</b></div>
+            <div class="sub">관찰하는 조원이 수행한 항목을 체크합니다. 모니터 버튼을 누르면 해당 항목은 자동으로 체크됩니다.</div>
+            <div id="skillBox" class="skills"></div>
+          </div>
+
+          <div class="card" style="display:grid;gap:10px">
+            <div class="scenebar">
+              <div>
+                <div class="sub">진행 (조 리더)</div>
+                <div class="scenetitle" id="sceneTitle">장면 1</div>
+              </div>
+              <div class="steps" id="steps"></div>
+              <div class="row">
+                <button class="btn ghost" id="prevBtn" type="button">이전 장면</button>
+                <button class="btn" id="nextBtn" type="button">다음 장면</button>
+              </div>
+            </div>
+            <div class="row">
+              <button class="btn ghost" id="startBtn" type="button">수행 시작</button>
+              <span class="status">경과 <b id="elapsed" style="font-family:var(--font-mono)">00:00</b></span>
+              <label class="chk"><input type="checkbox" id="memoToggle"> 우리 조 진행표 보기</label>
+            </div>
+            <dl class="memo" id="memo" hidden></dl>
+          </div>
+        </div>
+
+        <div style="display:grid;gap:12px">
+          <div class="card aibox">
+            <h2>AI가 맡은 역할</h2>
+            <div id="aiNone" class="empty" hidden>우리 조는 모든 역할을 학생이 맡았습니다.</div>
+            <div id="aiArea" style="display:grid;gap:8px">
+              <div class="slots" id="aiRoles"></div>
+              <div class="aisay"><span class="who" id="aiWho">AI 역할</span><span id="aiText">간호사가 한 말을 아래에 입력하면 이 역할이 답합니다.</span></div>
+              <form id="aiForm" class="row" style="flex-wrap:nowrap">
+                <label for="aiInput" style="position:absolute;left:-9999px">간호사가 한 말</label>
+                <input type="text" id="aiInput" placeholder="간호사가 한 말 (예: 어제 저녁 식사는 얼마나 드셨나요?)">
+                <button class="btn ai" type="submit" id="aiSend">답하기</button>
+              </form>
+              <label class="chk"><input type="checkbox" id="speakToggle"> 답을 소리로 읽기</label>
+            </div>
+          </div>
+
+          <div class="card" style="display:grid;gap:8px">
+            <h2>관찰 메모</h2>
+            <div class="row" style="flex-wrap:nowrap">
+              <label for="noteBox" style="position:absolute;left:-9999px">관찰 메모</label>
+              <input type="text" id="noteBox" placeholder="예: 보호자에게 혈당 결과를 설명함">
+              <button class="btn ghost" id="noteBtn" type="button">기록</button>
+            </div>
+            <div class="loglist" id="logList"></div>
+            <div class="status" id="syncStatus"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ⑥ 욕창·낙상 개인 평가 -->
+    <section class="stage" id="st6" role="tabpanel" hidden>
+      <section class="case" aria-label="욕창·낙상 체크용 상황지침">
+        <b>상황지침</b> <span class="sub">(욕창·낙상 체크용 · 측정도구로 각자 평가합니다)</span>
+        <p id="assessCase"></p>
+      </section>
+      <div class="grid2">
+        <div class="card" style="display:grid;gap:8px;align-content:start">
+          <h2>개인 평가 <span class="sub">Braden Scale · Morse Fall Scale</span></h2>
+          <div class="sub">조원마다 "입력하기"를 눌러 각자 채점합니다. 모두 제출하기 전에는 다른 조원의 점수가 보이지 않습니다.</div>
+          <div id="assessMembers" class="amembers"></div>
+          <div id="assessForm" hidden></div>
+          <div class="status" id="assessStatus"></div>
+        </div>
+        <div class="card" style="display:grid;gap:8px;align-content:start">
+          <h2>조원 점수 비교 <span class="sub">조 최종 점수 정하기</span></h2>
+          <div id="assessCompare"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ⑦ 디브리핑 및 성찰 -->
+    <section class="stage" id="st7" role="tabpanel" hidden>
+      <div class="grid2">
+        <div class="card" style="display:grid;gap:8px;align-content:start">
+          <h2>디브리핑 <span class="sub">실습보고서 항목4 순서</span></h2>
+          <div class="status" id="dbBasis"></div>
+          <div id="peerResult" class="assessbox"></div>
+          <div id="dbWait" hidden></div>
+          <div id="dbMain" style="display:grid;gap:8px">
+            <div id="fixed"></div>
+            <div class="row"><button class="btn ai" id="debriefBtn" type="button">AI 디브리핑 질문 더 받기</button></div>
+            <div class="debrief" id="debrief" hidden></div>
+          </div>
+        </div>
+        <div class="card" style="display:grid;gap:10px;align-content:start">
+          <h2>자기성찰 <span class="sub">실습보고서 항목5</span></h2>
+          <div class="sub">여기 쓴 내용은 ⑧에서 실습보고서 초안을 복사할 때 함께 들어갑니다. 이 노트북에만 저장됩니다.</div>
+          <div id="reflBox" class="refl"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ⑧ 정리 및 마무리 -->
+    <section class="stage" id="st8" role="tabpanel" hidden>
+      <div class="card" style="display:grid;gap:10px;max-width:760px">
+        <h2>정리 및 마무리</h2>
+        <div class="status" id="closeBasis"></div>
+        <ol class="qlist">
+          <li>아래 버튼으로 실습보고서 초안을 복사해 보고서 파일에 붙여 넣습니다.</li>
+          <li>항목3 간호과정과 간호기록지(S·O·A·P·I·E)를 수행 기록을 근거로 정리합니다.</li>
+          <li>SBAR는 조가 미리 쓴 예상 인수인계입니다. 실제로 한 인수인계로 고쳐 씁니다.</li>
+          <li>자기성찰의 나의 장점·보완할 점은 학생별로 작성합니다.</li>
+        </ol>
+        <div class="row"><button class="btn" id="copyBtn" type="button">실습보고서 초안 복사</button><span class="status" id="copyStatus"></span></div>
+      </div>
+    </section>
+  </section>
+</div>
+<script src="config.js"></script>
+<script src="common.js"></script>
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const pad = n => String(n).padStart(2,"0");
+  const store = {
+    get(k, d){ try{ const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; }catch(e){ return d; } },
+    set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+  };
+
+  // 지금 시각 (확인용: 주소에 ?now=2026-11-11T15:10 을 붙이면 그 시각부터 흐름)
+  const T0 = Date.now(), NOW_Q = (/[?&]now=([\d\-T:]+)/.exec(location.search) || [])[1];
+  const nowD = () => { if (NOW_Q){ const d = new Date(NOW_Q); if (!isNaN(d)) return new Date(d.getTime() + Date.now() - T0); } return new Date(); };
+  const dayKey = d => d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate());
+  const hmOf = d => pad(d.getHours()) + ":" + pad(d.getMinutes());
+  const WED = "2026-11-11", THU = "2026-11-12";
+
+  const CARD_URL = "https://claude.ai/artifact/PKDr3mEF76buugYnXVXsKy";
+  const ROLES = ["의사","간호사1(리더)","간호사2","환자","보호자"];
+  const DECIDE = ["활력징후","동공반사 결과","GCS 및 의식상태","IICP 증상 여부","폐음 (crackle 또는 wheezing)","BST 수치에 따른 RI sliding 수치"];
+  const STAGES = [
+    {n:1, mark:"①", title:"오리엔테이션", time:"13:00"},
+    {n:2, mark:"②", title:"역할·시나리오 작성", time:"13:20"},
+    {n:3, mark:"③", title:"시나리오 점검", time:"14:40"},
+    {n:4, mark:"④", title:"조별 연습", time:"15:00"},
+    {n:5, mark:"⑤", title:"구현 및 평가", time:"15:40"},
+    {n:6, mark:"⑥", title:"욕창·낙상 개인 평가", time:"⑤ 뒤"},
+    {n:7, mark:"⑦", title:"디브리핑 및 성찰", time:"16:30"},
+    {n:8, mark:"⑧", title:"정리 및 마무리", time:"16:50"}
+  ];
+  const WED_ROW_STAGE = [1,2,3,3,4,5,7,8]; // SCHEDULE 수요일 줄 → 단계 (휴식은 ③에 포함, ⑥ 개인 평가는 ⑤ 시간 안에서 학생이 엶)
+
+  let code = "", group = null, sc = null, run = null, stage = 0, lastAuto = null, lastErr = "";
+  const runs = {practice:null, eval:null};
+  const queue = []; let sending = false;
+
+  if (TS.DEMO) $("demoNote").hidden = false;
+  try{ code = localStorage.getItem("teamSim:code") || ""; group = localStorage.getItem("teamSim:group"); }catch(e){}
+  $("code").value = code;
+  // 조별 카드 링크 (config.js CARD_URLS) → 없으면 원본 카드
+  const cardUrl = () => ((window.TEAM_SIM_CONFIG || {}).CARD_URLS || {})[group] || CARD_URL;
+  $("cardLink").href = cardUrl();
+  $("cardLink").addEventListener("click", () => { $("cardLink").href = cardUrl(); });
+  document.querySelectorAll(".caseText").forEach(p => p.textContent = TS.CASE.text);
+  $("mCase").textContent = TS.CASE.short;
+  $("assessCase").textContent = TS.ASSESS_CASE;
+  [["의사 오더", TS.REF.order], ["RI sliding", TS.REF.ri]].forEach(([k, v]) => {
+    const dt = document.createElement("dt"); dt.textContent = k; const dd = document.createElement("dd"); dd.textContent = v; $("refList").append(dt, dd);
+  });
+
+  // ---------- login ----------
+  function drawGroups(){
+    const box = $("groupPick"); box.innerHTML = "";
+    TS.GROUPS.forEach(g => {
+      const b = document.createElement("button"); b.type = "button"; b.className = "slot"; b.textContent = g.label;
+      b.setAttribute("aria-pressed", String(g.id === group));
+      b.onclick = () => { group = g.id; drawGroups(); };
+      box.appendChild(b);
+    });
+  }
+  drawGroups();
+
+  // 조원 (학번·이름, 역할은 ②에서)
+  let members = store.get("teamSim:members", []);
+  (function drawMembers(){
+    const tb = $("members").querySelector("tbody");
+    for (let i=0;i<5;i++){
+      const m = members[i] || {}, tr = document.createElement("tr");
+      const n = document.createElement("td"); n.textContent = i+1;
+      const a = document.createElement("td"), b = document.createElement("td");
+      const id = document.createElement("input"); id.type = "text"; id.inputMode = "numeric"; id.autocomplete = "off"; id.className = "mId"; id.value = m.id || ""; id.setAttribute("aria-label", (i+1) + "번 조원 학번");
+      const nm = document.createElement("input"); nm.type = "text"; nm.autocomplete = "off"; nm.className = "mName"; nm.value = m.name || ""; nm.setAttribute("aria-label", (i+1) + "번 조원 이름");
+      a.appendChild(id); b.appendChild(nm); tr.append(n, a, b); tb.appendChild(tr);
+    }
+  })();
+  function readMembers(){
+    const ids = [...document.querySelectorAll("#members .mId")], names = [...document.querySelectorAll("#members .mName")];
+    const list = [], half = [];
+    ids.forEach((el,i) => {
+      const id = el.value.trim(), name = names[i].value.trim();
+      if (id && name){ const old = members.find(o => o.id === id) || {}; list.push({id, name, role: old.role || ""}); }
+      else if (id || name) half.push(i+1);
+    });
+    return {list, half};
+  }
+  const membersText = () => "조원: " + members.map(m => m.id + " " + m.name + (m.role ? " [" + m.role + "]" : "")).join(", ");
+  const groupLabel = () => (TS.GROUPS.find(g => g.id === group) || {}).label || "";
+  const setWho = () => $("who").textContent = groupLabel() + (sc && sc.groupName ? " · " + sc.groupName : "");
+
+  // 일정 줄: 지금·다음 일정, 펼치면 전체
+  function drawSchedule(){
+    const now = nowD(), today = dayKey(now), hm = hmOf(now);
+    const days = TS.SCHEDULE.filter(d => d.date === today);
+    const show = days.length ? days : TS.SCHEDULE;
+    const sum = $("schedNow"); sum.innerHTML = "";
+    const put = (txt, cls) => { const s = document.createElement(cls === "b" ? "b" : "span"); if (cls && cls !== "b") s.className = cls; s.textContent = txt; sum.appendChild(s); };
+    if (!days.length){ put("11/11(수) · 11/12(목) 일정 보기", "nx"); }
+    else {
+      const rows = days[0].rows, cur = rows.find(r => hm >= r[0] && hm < r[1]), nxt = rows.find(r => r[0] > hm);
+      if (cur){ put("지금 " + cur[0] + "~" + cur[1] + " ", ""); put(cur[2], "b"); }
+      else if (nxt) put("수업 전 ", "");
+      else put("오늘 일정이 끝났습니다", "");
+      if (nxt) put(" · 다음 " + nxt[0] + " " + nxt[2], "nx");
+    }
+    const box = $("schedule"); box.innerHTML = "";
+    show.forEach(d => {
+      const h = document.createElement("h3"); h.textContent = d.label; box.appendChild(h);
+      const t = document.createElement("table");
+      d.rows.forEach(([s,e,txt,note]) => {
+        const tr = document.createElement("tr"); if (d.date === today && hm >= s && hm < e) tr.className = "now";
+        const a = document.createElement("td"); a.textContent = s + "~" + e;
+        const b = document.createElement("td"); b.textContent = txt;
+        if (note){ const n = document.createElement("div"); n.className = "note"; n.textContent = note; b.appendChild(n); }
+        tr.append(a, b); t.appendChild(tr);
+      });
+      box.appendChild(t);
+    });
+  }
+  drawSchedule();
+
+  $("enterBtn").addEventListener("click", async () => {
+    code = $("code").value.trim();
+    if (!code || !group){ $("loginStatus").textContent = "수업 코드와 조를 고르세요."; return; }
+    const rm = readMembers();
+    if (rm.half.length){ $("loginStatus").textContent = rm.half.join(", ") + "번 줄의 학번과 이름을 모두 쓰세요."; return; }
+    if (!rm.list.length){ $("loginStatus").textContent = "조원의 학번과 이름을 쓰세요."; return; }
+    members = rm.list;
+    $("enterBtn").disabled = true; $("loginStatus").textContent = "불러오는 중…";
+    const r = await TS.call("getScenario", {code, g:group});
+    $("enterBtn").disabled = false;
+    if (!r.ok){ $("loginStatus").textContent = TS.errText(r.error); return; }
+    // 13:00에는 시나리오가 없으므로 확정 여부는 ③④⑤에서 확인
+    sc = r.scenario || null;
+    try{ localStorage.setItem("teamSim:code", code); localStorage.setItem("teamSim:group", group); }catch(e){}
+    store.set("teamSim:members", members);
+    $("login").hidden = true; $("runBody").hidden = false; $("schedBox").hidden = false;
+    setWho(); drawSkillRef();
+    lastAuto = stageForNow();
+    showStage(lastAuto || (dayKey(nowD()) === THU ? 4 : 1));
+  });
+
+  // ---------- 단계 탭 ----------
+  function stageForNow(){
+    const d = nowD(), hm = hmOf(d);
+    if (dayKey(d) !== WED) return null; // 목요일은 세부 일정 미정 → 처음에 ④를 열고 학생이 고름
+    const rows = TS.SCHEDULE.find(x => x.date === WED).rows;
+    if (hm < rows[0][0]) return 1;
+    const i = rows.findIndex(r => hm >= r[0] && hm < r[1]);
+    return i >= 0 ? WED_ROW_STAGE[i] : 7;
+  }
+  function drawTabs(){
+    const nav = $("stageTabs"); nav.innerHTML = "";
+    const thu = dayKey(nowD()) === THU, auto = stageForNow();
+    STAGES.filter(s => !thu || s.n >= 4).forEach(s => {
+      const b = document.createElement("button"); b.type = "button"; b.className = "stab"; b.setAttribute("role", "tab");
+      b.setAttribute("aria-selected", String(s.n === stage));
+      b.setAttribute("aria-controls", s.n === 4 || s.n === 5 ? "stSim" : "st" + s.n);
+      const t = document.createElement("span"); t.className = "tt"; t.textContent = s.mark + " " + s.title;
+      const m = document.createElement("small"); m.textContent = (thu ? "" : s.time) + (s.n === auto ? " · 지금" : "");
+      b.append(t, m); b.onclick = () => showStage(s.n); nav.appendChild(b);
+    });
+  }
+  function showStage(n){
+    stage = n; drawTabs();
+    ["st1","st2","st3","stSim","st6","st7","st8"].forEach(id => $(id).hidden = true);
+    if (n === 4 || n === 5){ $("stSim").hidden = false; enterSim(n === 5 ? "eval" : "practice"); }
+    else $("st" + n).hidden = false;
+    if (n === 2) drawPrep();
+    if (n === 3) drawSummary();
+    if (n === 6) drawAssess();
+    if (n === 7) drawDebrief();
+    if (n === 8) drawClose();
+  }
+  // 수업 날에는 시각이 바뀌면 그 단계 탭을 엶 (그 사이에는 학생이 다른 탭을 눌러 볼 수 있음)
+  setInterval(() => {
+    drawSchedule();
+    if ($("runBody").hidden) return;
+    const s = stageForNow();
+    if (s && s !== lastAuto){ lastAuto = s; showStage(s); } else drawTabs();
+  }, 30000);
+
+  // 시나리오 확정 전 안내
+  async function reloadScenario(){
+    const r = await TS.call("getScenario", {code, g:group});
+    if (!r.ok){ lastErr = TS.errText(r.error); return false; }
+    lastErr = "";
+    if (r.scenario){ sc = r.scenario; setWho(); return true; }
+    return false;
+  }
+  function waitBox(el, what){
+    el.innerHTML = "";
+    const d = document.createElement("div"); d.className = "waitbox";
+    const h = document.createElement("b"); h.textContent = "교수님 확인 중";
+    const p = document.createElement("p"); p.textContent = "교수님이 우리 조 시나리오를 확인하고 있습니다. " + what + " 확정되었다고 들으면 새로고침을 누르세요.";
+    const b = document.createElement("button"); b.type = "button"; b.className = "btn"; b.textContent = "새로고침";
+    const s = document.createElement("span"); s.className = "status";
+    b.onclick = async () => {
+      b.disabled = true; s.textContent = "확인 중…";
+      const ok = await reloadScenario();
+      b.disabled = false;
+      if (ok) showStage(stage); else s.textContent = lastErr || "아직 확정되지 않았습니다.";
+    };
+    const r = document.createElement("div"); r.className = "row"; r.append(b, s);
+    d.append(h, p, r); el.appendChild(d);
+  }
+
+  // ---------- ① 술기 확인 ----------
+  function drawSkillRef(){
+    const box = $("skillRef"); box.innerHTML = "";
+    TS.SKILLS.forEach(s => {
+      const h = document.createElement("h3"); h.textContent = s.sec + " (" + s.items[0][0] + "~" + s.items[s.items.length-1][0] + ")" + (s.indiv ? " · ⑥ 개인 평가로 측정도구를 이용해 각자 평가" : " · 팀 시뮬레이션");
+      const ol = document.createElement("ol"); ol.start = s.items[0][0];
+      s.items.forEach(([, txt]) => { const li = document.createElement("li"); li.textContent = txt; ol.appendChild(li); });
+      box.append(h, ol);
+    });
+  }
+
+  // ---------- ② 역할·시나리오 작성 ----------
+  function drawPrep(){
+    const tb = $("roleTable").querySelector("tbody"); tb.innerHTML = "";
+    members.forEach((m, i) => {
+      const tr = document.createElement("tr");
+      const n = document.createElement("td"); n.textContent = i+1;
+      const a = document.createElement("td"); a.textContent = m.id + " " + m.name;
+      const b = document.createElement("td");
+      const sel = document.createElement("select"); sel.className = "rolesel"; sel.setAttribute("aria-label", m.name + " 역할");
+      ["", ...ROLES].forEach(r => { const o = document.createElement("option"); o.value = r; o.textContent = r || "역할 고르기"; sel.appendChild(o); });
+      sel.value = m.role || ""; sel.onchange = () => { m.role = sel.value; $("roleStatus").textContent = "저장하지 않음"; };
+      b.appendChild(sel); tr.append(n, a, b); tb.appendChild(tr);
+    });
+    const key = "teamSim:decide:" + group, done = store.get(key, []);
+    const box = $("decideList"); box.innerHTML = "";
+    DECIDE.forEach((t, i) => {
+      const lab = document.createElement("label"); lab.className = "chk";
+      const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = !!done[i];
+      cb.onchange = () => { done[i] = cb.checked; store.set(key, done); };
+      lab.append(cb, document.createTextNode(t)); box.appendChild(lab);
+    });
+  }
+  $("roleSave").addEventListener("click", () => {
+    const used = members.map(m => m.role).filter(Boolean);
+    const dup = used.filter((r, i) => used.indexOf(r) !== i);
+    store.set("teamSim:members", members);
+    // 이미 시작한 회차가 있으면 바뀐 역할을 교수님 화면에도 보냄
+    [runs.practice, runs.eval].forEach(r => { if (r) addLog("members", membersText(), r); });
+    $("roleStatus").textContent = dup.length ? "저장했습니다. 같은 역할이 두 번 있습니다: " + [...new Set(dup)].join(", ")
+      : used.length < members.length ? "저장했습니다. 역할을 고르지 않은 조원이 있습니다." : "저장했습니다.";
+  });
+
+  // ---------- ③ 시나리오 점검 ----------
+  function drawSummary(){
+    const box = $("scSummary"); box.innerHTML = "";
+    if (!sc){ waitBox(box, "확정되면 점검 질문과 장면별 수치, RI sliding, 역할이 여기에 나옵니다."); return; }
+    const el = (tag, txt, cls) => { const e = document.createElement(tag); if (txt != null) e.textContent = txt; if (cls) e.className = cls; return e; };
+    const head = el("div", null, "row"); head.style.justifyContent = "space-between";
+    const h = el("h2", "우리 조 시나리오" + (sc.groupName ? " · " + sc.groupName : "")); h.style.margin = "0";
+    const rb = el("button", "최신 내용 다시 불러오기", "btn ghost"); rb.type = "button";
+    rb.onclick = async () => { rb.disabled = true; await reloadScenario(); rb.disabled = false; drawSummary(); };
+    head.append(h, rb); box.appendChild(head);
+    box.appendChild(el("div", "교수님이 확정한 내용입니다. 14:40~14:50에 조원과 함께 확인하고, 14:50~15:00은 휴식입니다.", "sub"));
+    // 점검 질문 (AI가 만들고 교수님이 확정) → 조가 답을 써서 교수님 화면으로 보냄
+    const qs = (sc.questions || []).filter(Boolean);
+    if (qs.length){
+      const qk = "teamSim:checkAns:" + group, saved = store.get(qk, {});
+      const qbox = el("div", null, "qcheck");
+      qbox.append(el("h3", "점검 질문 " + qs.length + "개"), el("div", "조원과 이야기한 뒤 근거를 들어 답을 쓰고 보내세요. 교수님 화면에 보입니다.", "sub"));
+      qs.forEach((q, i) => {
+        const item = el("div", null, "qitem");
+        const ta = document.createElement("textarea"); ta.rows = 2; ta.value = saved[i] || ""; ta.setAttribute("aria-label", "점검 질문 " + (i+1) + " 답");
+        ta.oninput = () => { saved[i] = ta.value; store.set(qk, saved); };
+        item.append(el("b", (i+1) + ". " + q), ta); qbox.appendChild(item);
+      });
+      const row = el("div", null, "row");
+      const send = el("button", "답 보내기", "btn"); send.type = "button";
+      const st = el("span", null, "status");
+      send.onclick = () => {
+        const ans = qs.map((q, i) => String(saved[i] || "").trim());
+        if (ans.some(a => !a)){ st.textContent = "모든 질문에 답을 쓰세요."; return; }
+        const r = checkRun();
+        qs.forEach((q, i) => addLog("checkAnswer", `점검 답 ${i+1}: ${q} → ${ans[i]}`, r));
+        st.textContent = "교수님 화면으로 보냈습니다. 고쳐서 다시 보내도 됩니다.";
+      };
+      row.append(send, st); qbox.appendChild(row);
+      box.appendChild(qbox);
+    }
+    const roles = el("div"); roles.appendChild(el("h3", "역할"));
+    const ul = el("ul", null, "rolelist");
+    (sc.roles || []).forEach(r => { const li = el("li"); li.append(el("b", r.role), document.createTextNode(" · " + (r.aiPlays ? "AI가 맡음" : (r.student || "학생")))); ul.appendChild(li); });
+    roles.appendChild(ul); box.appendChild(roles);
+    if (sc.ri){ const ri = el("div"); ri.append(el("h3", "RI sliding scale"), el("div", sc.ri, "ribox")); box.appendChild(ri); }
+    const grid = el("div", null, "scgrid");
+    sc.scenes.forEach((s, i) => {
+      const c = el("div", null, "scene");
+      c.appendChild(el("h3", "장면 " + (i+1) + " · " + s.title + (s.time ? " (" + s.time + ")" : "")));
+      if (s.event) c.appendChild(el("div", s.event));
+      const dl = el("dl", null, "kv");
+      TS.VKEYS.forEach(([k, label]) => { const v = s.vitals && s.vitals[k]; if (!v) return; dl.append(el("dt", label.replace(/ \(.*\)$/, "")), el("dd", v)); });
+      if (i === TS.INSULIN_SCENE && sc.ri) dl.append(el("dt", "RI sliding"), el("dd", sc.ri));
+      c.appendChild(dl);
+      if (s.script){ const d = el("details"); d.append(el("summary", "대본"), el("div", s.script, "script")); c.appendChild(d); }
+      grid.appendChild(c);
+    });
+    box.appendChild(grid);
+  }
+
+  // ---------- ④ 연습 · ⑤ 평가 ----------
+  const pKey = () => "teamSim:practiceNo:" + group + ":" + dayKey(nowD());
+  function newRun(kind){
+    let no = 0;
+    if (kind === "practice"){ no = store.get(pKey(), 0) + 1; store.set(pKey(), no); }
+    const label = kind === "eval" ? "평가" : "연습 " + no + "회";
+    run = {id: group + "-" + (kind === "eval" ? "eval" : "p" + no) + "-" + Date.now(), kind, label, scene:0, measured:{}, log:[], startedAt:null, aiRole:null, aiHist:{}, skills:{}, aiDebrief:""};
+    runs[kind] = run;
+    addLog("run", "회차: " + label); // 서버에는 문장만 저장되므로 회차 종류를 기록 문장으로 남김
+    if (members.length) addLog("members", membersText());
+  }
+  // ③ 점검 질문 답을 보낼 기록 묶음 (연습·평가 회차와 따로)
+  function checkRun(){
+    if (!runs.check){
+      runs.check = {id: group + "-check-" + Date.now(), kind:"check", label:"시나리오 점검", scene:0, measured:{}, log:[], startedAt:null, aiRole:null, aiHist:{}, skills:{}, aiDebrief:""};
+      addLog("run", "회차: 시나리오 점검", runs.check);
+      if (members.length) addLog("members", membersText(), runs.check);
+    }
+    return runs.check;
+  }
+  // ⑤ 구현 및 평가: 우리 조 차례가 아니면 다른 조를 평가
+  let peerMode = false, peerTarget = null, peersCache = [];
+  $("modeSelf").addEventListener("click", () => { peerMode = false; enterSim("eval"); });
+  $("modePeer").addEventListener("click", () => { peerMode = true; enterSim("eval"); });
+  function drawPeer(){
+    const box = $("peerPanel"); box.innerHTML = "";
+    const el = (tag, txt, cls) => { const e = document.createElement(tag); if (txt != null) e.textContent = txt; if (cls) e.className = cls; return e; };
+    const others = TS.GROUPS.filter(g => g.id !== group && g.id !== "ex");
+    if (!peerTarget || !others.find(g => g.id === peerTarget)) peerTarget = others[0] ? others[0].id : null;
+    box.append(el("h2", "다른 조 평가"), el("div", "지금 구현하는 조를 고르고, 본 대로 술기를 체크한 뒤 잘한 점과 보완할 점을 한마디씩 씁니다. 평가는 교수님과 그 조에게 보입니다.", "sub"));
+    const slots = el("div", null, "slots");
+    others.forEach(g => { const b = el("button", g.label, "slot"); b.type = "button"; b.setAttribute("aria-pressed", String(g.id === peerTarget)); b.onclick = () => { peerTarget = g.id; drawPeer(); }; slots.appendChild(b); });
+    box.appendChild(slots);
+    if (!peerTarget) return;
+    const key = "teamSim:peer:" + group + ">" + peerTarget, d = store.get(key, {items:[], good:"", fix:""});
+    const save = () => store.set(key, d);
+    const cnt = el("b", null); cnt.style.fontFamily = "var(--font-mono)";
+    const upd = () => cnt.textContent = d.items.length + "/" + TS.SKILL_TOTAL;
+    const head = el("div", null, "row"); head.style.justifyContent = "space-between";
+    head.append(el("h3", TS.groupLabelOf(peerTarget) + " 술기 체크 (work sheet)"), cnt); box.appendChild(head);
+    const sk = el("div", null, "skills");
+    TS.SIM_SKILLS.forEach(s => {
+      const det = el("details"); det.open = true; det.appendChild(el("summary", s.sec));
+      s.items.forEach(([no, txt]) => {
+        const lab = el("label", null, "chk skill"); const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = d.items.includes(no);
+        cb.onchange = () => { d.items = d.items.filter(x => x !== no); if (cb.checked) d.items.push(no); d.items.sort((a, b) => a - b); save(); upd(); };
+        lab.append(cb, el("b", no + "."), document.createTextNode(" " + txt)); det.appendChild(lab);
+      });
+      sk.appendChild(det);
+    });
+    box.appendChild(sk); upd();
+    const f = (label, k) => { const lab = el("label", null, "fld"); const ta = document.createElement("textarea"); ta.rows = 2; ta.value = d[k] || ""; ta.oninput = () => { d[k] = ta.value; save(); }; lab.append(el("span", label), ta); return lab; };
+    const refl = el("div", null, "refl"); refl.append(f("잘한 점", "good"), f("보완할 점", "fix")); box.appendChild(refl);
+    const row = el("div", null, "row"); const send = el("button", TS.groupLabelOf(peerTarget) + " 평가 보내기", "btn"); send.type = "button"; const st = el("span", null, "status");
+    send.onclick = async () => {
+      if (!d.good.trim() || !d.fix.trim()){ st.textContent = "잘한 점과 보완할 점을 한마디씩 쓰세요."; return; }
+      send.disabled = true; st.textContent = "보내는 중…";
+      const r = await TS.call("peer", {code, from:group, to:peerTarget, items:d.items, good:d.good.trim(), fix:d.fix.trim()});
+      send.disabled = false;
+      st.textContent = r.ok ? "보냈습니다. 고쳐서 다시 보내면 마지막 것으로 바뀝니다." : TS.errText(r.error);
+    };
+    row.append(send, st); box.appendChild(row);
+  }
+  async function loadPeers(){
+    const r = await TS.call("peerFor", {code, g:group});
+    if (r.ok) peersCache = r.peers || [];
+    return peersCache;
+  }
+  function drawPeerResult(){
+    const box = $("peerResult"); box.innerHTML = "";
+    const h = document.createElement("b"); h.textContent = "다른 조가 평가한 우리 조"; box.appendChild(h);
+    if (!peersCache.length){ const d = document.createElement("div"); d.textContent = "아직 받은 평가가 없습니다."; box.appendChild(d); return; }
+    peersCache.forEach(p => { const d = document.createElement("div"); d.textContent = TS.peerText(p); box.appendChild(d); });
+  }
+  function enterSim(kind){
+    const ev = kind === "eval";
+    $("peerBar").hidden = !ev;
+    $("modeSelf").setAttribute("aria-pressed", String(!peerMode)); $("modePeer").setAttribute("aria-pressed", String(peerMode));
+    if (ev && peerMode){
+      ["runHead","simBody","simCase","simWait"].forEach(id => $(id).hidden = true);
+      $("peerPanel").hidden = false; drawPeer(); return;
+    }
+    $("peerPanel").hidden = true;
+    if (!sc){
+      $("runHead").hidden = true; $("simBody").hidden = true; $("simCase").hidden = true; $("simWait").hidden = false;
+      waitBox($("simWait"), "확정되면 여기서 시뮬레이션을 시작합니다.");
+      return;
+    }
+    $("runHead").hidden = false; $("simBody").hidden = false; $("simCase").hidden = false; $("simWait").hidden = true;
+    if (!runs[kind]) newRun(kind);
+    run = runs[kind];
+    drawRunHead(); render(); drawSkills(); $("elapsed").textContent = elapsed();
+  }
+  function drawRunHead(){
+    const ev = run.kind === "eval";
+    $("runKind").textContent = run.label; $("runKind").className = "pill " + (ev ? "eval" : "prac");
+    $("runHint").textContent = ev ? "이 회차가 교수님 현황과 실습보고서의 기준입니다." : "최소 2회 연습합니다. 한 회차를 마치면 새 회차를 시작하세요.";
+    $("newRunBtn").textContent = ev ? "평가 다시 시작" : "새 연습 회차 시작";
+    $("runStatus").textContent = "";
+    armed = false;
+  }
+  let armed = false, armTimer = null;
+  $("newRunBtn").addEventListener("click", () => {
+    if (run.kind === "practice"){
+      if (!run.startedAt){ $("runStatus").textContent = "이번 회차를 아직 시작하지 않았습니다."; return; }
+      newRun("practice"); drawRunHead(); render(); drawSkills(); $("elapsed").textContent = elapsed();
+      $("runStatus").textContent = run.label + "를 시작합니다.";
+      return;
+    }
+    // 평가는 한 번 더 눌러야 다시 시작 (실수 방지)
+    if (!armed){ armed = true; $("newRunBtn").textContent = "한 번 더 누르면 평가 기록을 새로 시작"; clearTimeout(armTimer); armTimer = setTimeout(drawRunHead, 4000); return; }
+    clearTimeout(armTimer); newRun("eval"); drawRunHead(); render(); drawSkills(); $("elapsed").textContent = elapsed();
+    $("runStatus").textContent = "평가 기록을 새로 시작했습니다.";
+  });
+
+  // ---------- 술기 체크리스트 ----------
+  function startIfNeeded(){ if (!run.startedAt){ run.startedAt = Date.now(); addLog("scene", "수행 시작"); } }
+  function setSkill(no, on){
+    if (!!run.skills[no] === on) return;
+    startIfNeeded();
+    run.skills[no] = on;
+    const it = TS.SKILLS.flatMap(s => s.items).find(x => x[0] === no);
+    addLog("skill", `술기 ${on ? "체크" : "해제"} ${no}. ${it ? it[1] : ""}`);
+    drawSkills();
+  }
+  function drawSkills(){
+    const box = $("skillBox"); box.innerHTML = "";
+    let n = 0;
+    const firstOpen = (TS.SIM_SKILLS.find(x => x.items.some(it => !run.skills[it[0]])) || {}).sec;
+    TS.SIM_SKILLS.forEach(s => {
+      const done = s.items.filter(it => run.skills[it[0]]).length; n += done;
+      const det = document.createElement("details"); det.open = s.sec === firstOpen;
+      const sum = document.createElement("summary"); sum.textContent = `${s.sec} · ${done}/${s.items.length}`; det.appendChild(sum);
+      s.items.forEach(([no, txt]) => {
+        const lab = document.createElement("label"); lab.className = "chk skill";
+        const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = !!run.skills[no];
+        cb.onchange = () => setSkill(no, cb.checked);
+        const b = document.createElement("b"); b.textContent = no + ".";
+        lab.append(cb, b, document.createTextNode(" " + txt)); det.appendChild(lab);
+      });
+      box.appendChild(det);
+    });
+    $("skillCount").textContent = n + "/" + TS.SKILL_TOTAL;
+  }
+  const elapsed = (r) => { r = r || run; if (!r || !r.startedAt) return "00:00"; const s = Math.floor((Date.now()-r.startedAt)/1000); return pad(Math.floor(s/60))+":"+pad(s%60); };
+  setInterval(() => { if (run && run.startedAt) $("elapsed").textContent = elapsed(); }, 1000);
+
+  function addLog(kind, text, r){
+    r = r || run;
+    const e = {t: elapsed(r), scene: r.scene+1, kind, text};
+    r.log.push(e); queue.push({runId: r.id, e});
+    if (r === run) drawLog();
+    flush();
+  }
+  async function flush(){
+    if (sending || !queue.length) return;
+    sending = true;
+    const rid = queue[0].runId, batch = [];
+    while (queue.length && queue[0].runId === rid) batch.push(queue.shift().e);
+    const r = await TS.call("log", {code, g:group, runId:rid, entries:batch});
+    sending = false;
+    if (!r.ok){ queue.unshift(...batch.map(e => ({runId:rid, e}))); $("syncStatus").textContent = "교수님 화면으로 보내지 못한 기록 " + queue.length + "개 · 잠시 뒤 다시 보냅니다"; setTimeout(flush, 8000); }
+    else { $("syncStatus").textContent = "교수님 화면으로 전송됨"; if (queue.length) flush(); }
+  }
+  function drawLog(){
+    const L = $("logList"); L.innerHTML = "";
+    run.log.filter(e => e.kind !== "run" && e.kind !== "members").slice().reverse().forEach(e => {
+      const d = document.createElement("div"); const t = document.createElement("span"); t.className = "t"; t.textContent = e.t + " · 장면" + e.scene;
+      d.append(t, document.createTextNode(e.text)); L.appendChild(d);
+    });
+  }
+  function setV(id, val, when, stale){ const el = $(id); el.querySelector(".num").textContent = val; el.querySelector(".when").textContent = when; el.classList.toggle("stale", !!stale); }
+  function render(){
+    const S = sc.scenes[run.scene], V = S.vitals;
+    $("mGroup").textContent = sc.groupName || "";
+    $("mClock").textContent = S.time || "--:--";
+    // 심전도·산소포화도는 연결한 뒤부터 연속으로 보임
+    setV("v-hr", run.measured.hr ? (V.hr || "--") : "--", run.measured.hr ? "연속" : "연결 전");
+    setV("v-spo2", run.measured.spo2 ? (V.spo2 || "--") : "--", run.measured.spo2 ? "연속" : "연결 전");
+    [["bp","v-bp"],["rr","v-rr"],["bt","v-bt"],["gcs","v-gcs"],["pupil","v-pupil"],["bst","v-bst"],["lung","v-lung"]].forEach(([k,id]) => {
+      const m = run.measured[k];
+      if (!m) setV(id, "--", "측정 전", false);
+      else setV(id, m.val, (m.scene === run.scene ? "방금 측정 " : "이전 장면 값 ") + m.time, m.scene !== run.scene);
+    });
+    $("sceneTitle").textContent = `장면 ${run.scene+1} · ${S.title}`;
+    const st = $("steps"); st.innerHTML = "";
+    sc.scenes.forEach((_,i) => { const d = document.createElement("span"); d.className = "step" + (i===run.scene ? " on" : i<run.scene ? " past" : ""); st.appendChild(d); });
+    $("prevBtn").disabled = run.scene === 0; $("nextBtn").disabled = run.scene === sc.scenes.length-1;
+    const memo = $("memo"); memo.innerHTML = "";
+    [["일어나는 일",S.event],["단서",S.cues],["기대 간호 행동",S.expected],["다음 장면 조건",S.advance],["환자 모습",V.look],["RI sliding scale",run.scene === TS.INSULIN_SCENE ? sc.ri : ""],["대본",S.script]].forEach(([k,v]) => {
+      if (!v) return; const dt = document.createElement("dt"); dt.textContent = k; const dd = document.createElement("dd"); dd.textContent = v; memo.append(dt, dd);
+    });
+    memo.hidden = !$("memoToggle").checked;
+    const ais = (sc.roles || []).filter(r => r.aiPlays);
+    $("aiNone").hidden = ais.length > 0; $("aiArea").hidden = ais.length === 0;
+    if (ais.length && (!run.aiRole || !ais.find(r => r.role === run.aiRole))) run.aiRole = ais[0].role;
+    const ar = $("aiRoles"); ar.innerHTML = "";
+    ais.forEach(r => {
+      const b = document.createElement("button"); b.type = "button"; b.className = "slot"; b.textContent = r.role;
+      b.setAttribute("aria-pressed", String(r.role === run.aiRole));
+      b.onclick = () => { run.aiRole = r.role; render(); };
+      ar.appendChild(b);
+    });
+    if (run.aiRole) $("aiWho").textContent = run.aiRole;
+    $("aiText").textContent = "간호사가 한 말을 아래에 입력하면 이 역할이 답합니다.";
+    drawLog();
+  }
+  $("memoToggle").addEventListener("change", () => $("memo").hidden = !$("memoToggle").checked);
+  $("prevBtn").addEventListener("click", () => { if (run.scene > 0){ run.scene--; addLog("scene", "장면 " + (run.scene+1) + "로 되돌림"); render(); } });
+  $("nextBtn").addEventListener("click", () => { if (run.scene < sc.scenes.length-1){ run.scene++; addLog("scene", "장면 " + (run.scene+1) + " 시작 (" + sc.scenes[run.scene].title + ")"); render(); } });
+  $("startBtn").addEventListener("click", () => startIfNeeded());
+  document.querySelectorAll(".mbtn").forEach(b => b.addEventListener("click", () => {
+    startIfNeeded();
+    const V = sc.scenes[run.scene].vitals, time = sc.scenes[run.scene].time || "";
+    const rec = k => run.measured[k] = {val: V[k] || "--", scene: run.scene, time};
+    const m = b.dataset.m;
+    if (m === "ecg"){ rec("hr"); addLog("measure", "측정: 심전도 연결, HR " + V.hr); }
+    if (m === "spo2"){ rec("spo2"); addLog("measure", "측정: 산소포화도 측정기 연결, SpO₂ " + V.spo2); }
+    if (m === "vs"){ rec("bp"); rec("rr"); rec("bt"); addLog("measure", `측정: 활력징후 BP ${V.bp}, RR ${V.rr}, BT ${V.bt}` + (run.measured.hr ? `, HR(심전도) ${V.hr}` : "")); }
+    if (m === "gcs"){ rec("gcs"); addLog("measure", "측정: GCS " + V.gcs); }
+    if (m === "pupil"){ rec("pupil"); addLog("measure", "측정: 동공 " + V.pupil); }
+    if (m === "iicp"){ addLog("measure", "측정: IICP 증상(오심·구토·두통) 확인 · " + (V.iicp || "--")); }
+    if (m === "lung"){ rec("lung"); addLog("measure", "측정: 폐음 " + V.lung); }
+    if (m === "bst"){ rec("bst"); addLog("measure", "측정: 혈당 " + V.bst); }
+    // work sheet 항목 자동 체크
+    ({ecg:[3], spo2:[4], pupil:[5], vs:[6], gcs:[7,8,9], iicp:[10], lung:[11]}[m] || []).forEach(no => setSkill(no, true));
+    render();
+  }));
+  $("noteBtn").addEventListener("click", () => { const v = $("noteBox").value.trim(); if (!v) return; addLog("note", "메모: " + v); $("noteBox").value = ""; });
+  $("noteBox").addEventListener("keydown", e => { if (e.key === "Enter" && !e.isComposing){ e.preventDefault(); $("noteBtn").click(); } });
+
+  // ---------- AI role ----------
+  function speak(text){
+    if (!$("speakToggle").checked) return;
+    try{ const u = new SpeechSynthesisUtterance(text); u.lang = "ko-KR"; speechSynthesis.cancel(); speechSynthesis.speak(u); }catch(e){}
+  }
+  $("aiForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    const said = $("aiInput").value.trim(); if (!said) return;
+    const r = sc.roles.find(x => x.role === run.aiRole); if (!r) return;
+    const R = run, hist = R.aiHist[r.role] || (R.aiHist[r.role] = []);
+    hist.push("간호사: " + said); addLog("ai", `간호사 → ${r.role}: ${said}`, R);
+    $("aiInput").value = ""; $("aiSend").disabled = true; $("aiText").textContent = "…";
+    const measured = Object.entries(R.measured).map(([k,v]) => k + " " + v.val).join(", ");
+    const res = await TS.call("ai", {code, kind:"role", prompt: TS.rolePrompt(r, sc.scenes[R.scene], R.scene, measured, hist, sc.ri)});
+    $("aiSend").disabled = false;
+    if (!res.ok){ $("aiText").textContent = TS.errText(res.error) + " 이 역할은 조원 중 한 명이 대신 맡아 주세요."; return; }
+    hist.push(r.role + ": " + res.text); addLog("ai", `${r.role}(AI): ${res.text}`, R);
+    if (R === run){ $("aiText").textContent = res.text; speak(res.text); }
+  });
+
+  // ---------- ⑥ 욕창·낙상 개인 평가 ----------
+  // 각자 Braden·Morse를 채점 → 모두 제출하면 조원 점수 비교 → 조 최종 점수 저장
+  // 기록은 디브리핑 기준 회차(평가, 없으면 연습)에 "assess"/"assessFinal" 문장으로 남김
+  const aKey = () => "teamSim:assess:" + group + ":" + dayKey(nowD());
+  const aLoad = () => store.get(aKey(), {ind:{}, fin:null});
+  const whoOf = m => m.id + " " + m.name;
+  let aEditing = null;
+  function sendAssess(kind, text){
+    const b = basis();
+    if (b){ addLog(kind, text, b); return true; }
+    return false;
+  }
+  function drawAssess(){
+    const A = aLoad();
+    const box = $("assessMembers"); box.innerHTML = "";
+    members.forEach(m => {
+      const row = document.createElement("div"); row.className = "amember";
+      const nm = document.createElement("span"); nm.textContent = whoOf(m);
+      const done = A.ind[m.id];
+      const st = document.createElement("span"); st.className = "pill " + (done ? "prac" : ""); st.textContent = done ? "제출함" : "미제출";
+      const bt = document.createElement("button"); bt.type = "button"; bt.className = "btn ghost"; bt.textContent = done ? "다시 입력" : "입력하기";
+      bt.onclick = () => { aEditing = m.id; drawAssessForm(); };
+      row.append(nm, st, bt); box.appendChild(row);
+    });
+    drawAssessForm(); drawCompare();
+  }
+  function scoreSelect(def, val, onch, label){
+    const lab = document.createElement("label"); lab.className = "fld";
+    const sp = document.createElement("span"); sp.textContent = label || def.label;
+    const sel = document.createElement("select"); sel.className = "rolesel";
+    const o0 = document.createElement("option"); o0.value = ""; o0.textContent = "고르기"; sel.appendChild(o0);
+    def.opts.forEach(([v, t]) => { const o = document.createElement("option"); o.value = v; o.textContent = v + "점 · " + t; sel.appendChild(o); });
+    sel.value = val == null ? "" : String(val); sel.onchange = () => onch(sel.value === "" ? null : +sel.value);
+    lab.append(sp, sel); return lab;
+  }
+  function drawAssessForm(){
+    const f = $("assessForm"); f.innerHTML = "";
+    const m = members.find(x => x.id === aEditing);
+    if (!m){ f.hidden = true; return; }
+    f.hidden = false;
+    const A = aLoad(), prev = A.ind[m.id] || {b:{}, m:{}};
+    const b = Object.assign({}, prev.b), mo = Object.assign({}, prev.m);
+    const h = document.createElement("h3"); h.textContent = whoOf(m) + "의 평가";
+    const tot = document.createElement("div"); tot.className = "sub";
+    const upd = () => {
+      const fb = TS.BRADEN.every(d => b[d.k] != null), fm = TS.MORSE.every(d => mo[d.k] != null);
+      tot.textContent = "Braden " + (fb ? TS.sumOf(TS.BRADEN, b) + "점 " + TS.bradenRisk(TS.sumOf(TS.BRADEN, b)) : "입력 중") + " · Morse " + (fm ? TS.sumOf(TS.MORSE, mo) + "점 " + TS.morseRisk(TS.sumOf(TS.MORSE, mo)) : "입력 중");
+    };
+    f.appendChild(h);
+    const h1 = document.createElement("div"); h1.className = "sub"; h1.textContent = "욕창 Braden Scale (점수가 낮을수록 위험)"; f.appendChild(h1);
+    TS.BRADEN.forEach(d => f.appendChild(scoreSelect(d, b[d.k], v => { b[d.k] = v; upd(); })));
+    const h2 = document.createElement("div"); h2.className = "sub"; h2.textContent = "낙상 Morse Fall Scale"; f.appendChild(h2);
+    TS.MORSE.forEach(d => f.appendChild(scoreSelect(d, mo[d.k], v => { mo[d.k] = v; upd(); })));
+    upd(); f.appendChild(tot);
+    const row = document.createElement("div"); row.className = "row";
+    const ok = document.createElement("button"); ok.type = "button"; ok.className = "btn"; ok.textContent = "제출";
+    const cancel = document.createElement("button"); cancel.type = "button"; cancel.className = "btn ghost"; cancel.textContent = "닫기";
+    cancel.onclick = () => { aEditing = null; drawAssessForm(); };
+    ok.onclick = () => {
+      if (!TS.BRADEN.every(d => b[d.k] != null) || !TS.MORSE.every(d => mo[d.k] != null)){ $("assessStatus").textContent = "모든 영역의 점수를 고르세요."; return; }
+      const A2 = aLoad(); A2.ind[m.id] = {who: whoOf(m), b, m: mo}; store.set(aKey(), A2);
+      const sent = sendAssess("assess", "개인 평가 " + TS.assessText(whoOf(m), b, mo));
+      $("assessStatus").textContent = whoOf(m) + " 제출함" + (sent ? "" : " (수행 기록이 아직 없어 교수님 화면에는 보내지 않았습니다. ④ 연습이나 ⑤ 평가를 먼저 하세요.)");
+      aEditing = null; drawAssess();
+    };
+    row.append(ok, cancel); f.appendChild(row);
+  }
+  function drawCompare(){
+    const box = $("assessCompare"); box.innerHTML = "";
+    const A = aLoad(), list = members.map(m => A.ind[m.id]).filter(Boolean);
+    const left = members.length - list.length;
+    if (!list.length || left > 0){
+      const e = document.createElement("div"); e.className = "empty";
+      e.textContent = list.length ? "아직 " + left + "명이 제출하지 않았습니다. 모두 제출하면 조원 점수가 나란히 보입니다." : "조원이 모두 제출하면 여기에 점수가 나란히 보입니다.";
+      box.appendChild(e); return;
+    }
+    // 조 최종: 저장된 값, 없으면 가장 많이 나온 값
+    const mode = (defs, part) => { const o = {}; defs.forEach(d => { const c = {}; list.forEach(p => c[p[part][d.k]] = (c[p[part][d.k]] || 0) + 1); o[d.k] = +Object.keys(c).sort((x, y) => c[y] - c[x])[0]; }); return o; };
+    const fin = A.fin || {b: mode(TS.BRADEN, "b"), m: mode(TS.MORSE, "m")};
+    const wrap = document.createElement("div"); wrap.className = "tablewrap";
+    const t = document.createElement("table"); t.className = "vt acmp";
+    const head = document.createElement("tr");
+    ["영역"].concat(list.map(p => p.who.split(" ").slice(1).join(" ") || p.who), ["조 최종"]).forEach(x => { const th = document.createElement("th"); th.textContent = x; head.appendChild(th); });
+    t.appendChild(head);
+    const section = (title, defs, part) => {
+      const tr = document.createElement("tr"); const th = document.createElement("th"); th.colSpan = list.length + 2; th.textContent = title; tr.appendChild(th); t.appendChild(tr);
+      defs.forEach(d => {
+        const r = document.createElement("tr"); const vals = list.map(p => p[part][d.k]);
+        const differ = new Set(vals).size > 1;
+        const c0 = document.createElement("td"); c0.textContent = d.label + (differ ? " · 갈림" : ""); if (differ) r.className = "differ";
+        r.appendChild(c0);
+        vals.forEach(v => { const td = document.createElement("td"); td.textContent = v; r.appendChild(td); });
+        const tf = document.createElement("td"); const sel = document.createElement("select"); sel.className = "rolesel"; sel.setAttribute("aria-label", "조 최종 " + d.label);
+        d.opts.forEach(([v]) => { const o = document.createElement("option"); o.value = v; o.textContent = v; sel.appendChild(o); });
+        sel.value = String(fin[part][d.k]); sel.onchange = () => { fin[part][d.k] = +sel.value; drawTotals(); };
+        tf.appendChild(sel); r.appendChild(tf); t.appendChild(r);
+      });
+      const tr2 = document.createElement("tr"); tr2.className = "tot";
+      const a = document.createElement("td"); a.textContent = "총점"; tr2.appendChild(a);
+      list.forEach(p => { const td = document.createElement("td"); const s = TS.sumOf(defs, p[part]); td.textContent = s + " " + (part === "b" ? TS.bradenRisk(s) : TS.morseRisk(s)); tr2.appendChild(td); });
+      const ft = document.createElement("td"); ft.className = "ftot-" + part; tr2.appendChild(ft); t.appendChild(tr2);
+    };
+    section("욕창 Braden", TS.BRADEN, "b"); section("낙상 Morse", TS.MORSE, "m");
+    wrap.appendChild(t); box.appendChild(wrap);
+    function drawTotals(){
+      const sb = TS.sumOf(TS.BRADEN, fin.b), sm = TS.sumOf(TS.MORSE, fin.m);
+      t.querySelector(".ftot-b").textContent = sb + " " + TS.bradenRisk(sb); t.querySelector(".ftot-m").textContent = sm + " " + TS.morseRisk(sm);
+    }
+    drawTotals();
+    const note = document.createElement("div"); note.className = "sub"; note.textContent = "점수가 갈린 영역은 상황지침의 어떤 문장을 근거로 했는지 말해 보고, 조 최종 점수를 정하세요.";
+    const row = document.createElement("div"); row.className = "row";
+    const sv = document.createElement("button"); sv.type = "button"; sv.className = "btn"; sv.textContent = "조 최종 점수 저장";
+    const st = document.createElement("span"); st.className = "status"; if (A.fin) st.textContent = "저장된 조 최종 점수가 있습니다.";
+    sv.onclick = () => {
+      const A2 = aLoad(); A2.fin = {b: Object.assign({}, fin.b), m: Object.assign({}, fin.m)}; store.set(aKey(), A2);
+      const sent = sendAssess("assessFinal", "조 최종 " + TS.assessText("우리 조", fin.b, fin.m));
+      st.textContent = "저장했습니다." + (sent ? " 디브리핑과 보고서 초안에 들어갑니다." : " (수행 기록이 없어 교수님 화면에는 보내지 않았습니다.)");
+    };
+    row.append(sv, st); box.append(note, row);
+  }
+
+  // ---------- ⑦ 디브리핑 및 성찰 ----------
+  // 평가 회차를 기준으로 하고, 평가 기록이 없으면 연습 회차를 씀
+  function basis(){
+    if (runs.eval && runs.eval.startedAt) return runs.eval;
+    if (runs.practice && runs.practice.startedAt) return runs.practice;
+    return runs.eval || runs.practice || null;
+  }
+  const basisText = b => !b ? "" : b.kind === "eval" ? "평가 회차 기록을 기준으로 합니다." : "평가 기록이 아직 없어 " + b.label + " 기록으로 보여 줍니다.";
+  function drawDebrief(){
+    const b = basis();
+    drawRefl();
+    drawPeerResult(); loadPeers().then(drawPeerResult);
+    if (!sc){ $("dbMain").hidden = true; $("dbWait").hidden = false; $("dbBasis").textContent = ""; waitBox($("dbWait"), "확정되면 우리 조 시나리오에 맞춘 질문이 나옵니다."); return; }
+    $("dbWait").hidden = true; $("dbMain").hidden = false;
+    $("dbBasis").textContent = b ? basisText(b) : "아직 수행 기록이 없습니다. ④ 연습이나 ⑤ 평가를 먼저 진행하세요. 아래 질문은 그대로 쓸 수 있습니다.";
+    drawFixed(b ? b.log : []);
+    $("debrief").hidden = !(b && b.aiDebrief); $("debrief").textContent = b ? b.aiDebrief : "";
+    $("debriefBtn").disabled = !b;
+  }
+  function drawFixed(log){
+    const f = TS.fixedDebrief(sc, log);
+    const box = $("fixed"); box.innerHTML = "";
+    const sec = (title, items, ordered) => {
+      const h = document.createElement("h3"); h.textContent = title; box.appendChild(h);
+      const l = document.createElement(ordered ? "ol" : "ul"); l.className = "qlist";
+      items.forEach(t => { const li = document.createElement("li"); li.textContent = t; l.appendChild(li); });
+      box.appendChild(l);
+    };
+    sec("기록 요약 (자동)", f.facts);
+    f.stages.forEach(st => sec(st.title, st.items, true));
+  }
+  $("debriefBtn").addEventListener("click", async () => {
+    const b = basis(); if (!b) return;
+    $("debriefBtn").disabled = true; $("debrief").hidden = false; $("debrief").textContent = "우리 조 기록을 읽는 중… (20초쯤)";
+    const res = await TS.call("ai", {code, kind:"debrief", prompt: TS.debriefPrompt(sc, b.log)});
+    $("debriefBtn").disabled = false;
+    if (res.ok){ b.aiDebrief = res.text; addLog("debrief", "AI 디브리핑 받음", b); }
+    $("debrief").textContent = res.ok ? res.text : TS.errText(res.error) + " 위의 질문으로 진행하세요.";
+  });
+
+  const rKey = () => "teamSim:refl:" + group;
+  function drawRefl(){
+    const refl = store.get(rKey(), {group:["","",""], groupFix:"", mine:{}});
+    const save = () => store.set(rKey(), refl);
+    const box = $("reflBox"); box.innerHTML = "";
+    const field = (label, val, set, area) => {
+      const lab = document.createElement("label"); lab.className = "fld";
+      const sp = document.createElement("span"); sp.textContent = label;
+      const inp = document.createElement(area ? "textarea" : "input"); if (!area) inp.type = "text"; else inp.rows = 2;
+      inp.value = val || ""; inp.oninput = () => { set(inp.value); save(); };
+      lab.append(sp, inp); return lab;
+    };
+    const h1 = document.createElement("h3"); h1.textContent = "우리 조의 장점 3가지"; box.appendChild(h1);
+    [0,1,2].forEach(i => box.appendChild(field((i+1) + ")", refl.group[i], v => refl.group[i] = v)));
+    const h2 = document.createElement("h3"); h2.textContent = "우리 조가 보완할 점 1가지"; box.appendChild(h2);
+    box.appendChild(field("1)", refl.groupFix, v => refl.groupFix = v));
+    const h3 = document.createElement("h3"); h3.textContent = "학생별: 나의 장점 3가지 · 내가 보완할 점 1가지"; box.appendChild(h3);
+    members.forEach(m => {
+      const mine = refl.mine[m.id] || (refl.mine[m.id] = {good:"", fix:""});
+      const d = document.createElement("div"); d.className = "reflme";
+      const b = document.createElement("b"); b.textContent = m.id + " " + m.name;
+      d.append(b, field("나의 장점", mine.good, v => mine.good = v, true), field("내가 보완할 점", mine.fix, v => mine.fix = v));
+      box.appendChild(d);
+    });
+  }
+  function reflForReport(){
+    const refl = store.get(rKey(), {group:[], groupFix:"", mine:{}});
+    return {group: refl.group || [], groupFix: refl.groupFix || "",
+      mine: members.map(m => Object.assign({who: m.id + " " + m.name}, (refl.mine || {})[m.id] || {})).filter(x => x.good || x.fix)};
+  }
+
+  // ---------- ⑦ 정리 및 마무리 ----------
+  function drawClose(){
+    const b = basis();
+    $("closeBasis").textContent = b ? "실습보고서 초안: " + basisText(b) : "아직 수행 기록이 없습니다. 복사하면 빈 양식이 나옵니다.";
+    $("copyStatus").textContent = "";
+    loadPeers();
+  }
+  $("copyBtn").addEventListener("click", async () => {
+    const b = basis();
+    const text = TS.reportDraft(sc || TS.normalize({}), b ? b.log : [], groupLabel(), b ? b.aiDebrief : "", reflForReport(), peersCache);
+    try{ await navigator.clipboard.writeText(text); $("copyStatus").textContent = "실습보고서 양식대로 복사했습니다. 보고서 파일에 붙여 넣고 빈칸을 채우세요."; }
+    catch(e){ $("copyStatus").textContent = "복사하지 못했습니다. 다시 눌러 보세요."; }
+  });
+})();
+</script>
+</body>
+</html>
