@@ -7,13 +7,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261109d">
+<link rel="stylesheet" href="style.css?v=20261110a">
 </head>
 <body>
 <div class="wrap">
   <div class="bar">
     <div>
-      <h1>팀 시뮬레이션 · 조별 화면</h1>
+      <h1>팀 시뮬레이션 · 조별 화면<span id="dayBadge" class="sub" hidden> · 목요일 (수술 후 1일째 IICP 악화)</span></h1>
       <div class="sub">김길동님(75세), 개두술·혈종제거술 후 신경계 중환자실 · 우리 조가 만든 시나리오로 진행합니다</div>
     </div>
     <span class="sub" id="who"></span>
@@ -46,7 +46,7 @@
     <section class="card welcome" aria-labelledby="welcomeTitle">
       <h2 id="welcomeTitle">환영합니다</h2>
       <p>신경계 간호 AI 기반 임상실습 팀시뮬레이션에 오신 것을 환영합니다.</p>
-      <p>이번 실습은 <b>AI를 기반으로 운영</b>합니다. 여러분이 조별로 만든 시나리오를 AI가 함께 점검하고, 수행 중에는 필요한 역할을 대신 맡거나 우리 조의 기록을 읽고 디브리핑 질문을 만들어 줍니다.</p>
+      <p id="aiIntro">이번 실습은 <b>AI를 기반으로 운영</b>합니다. 여러분이 조별로 만든 시나리오를 AI가 함께 점검하고, 수행 중에는 필요한 역할을 대신 맡거나 우리 조의 기록을 읽고 디브리핑 질문을 만들어 줍니다.</p>
       <h3>오늘의 흐름</h3>
       <ol>
         <li>상황지침과 work sheet 수행항목을 확인합니다.</li>
@@ -54,7 +54,7 @@
         <li>조별로 연습한 뒤, 시나리오를 구현하고 평가받습니다.</li>
         <li>디브리핑과 성찰로 마무리합니다.</li>
       </ol>
-      <p class="sub">AI의 답은 참고용입니다. 수치와 판단은 교재와 교수님의 확인을 기준으로 하고, 실제 환자 정보는 입력하지 마세요.</p>
+      <p class="sub" id="aiCaution">AI의 답은 참고용입니다. 수치와 판단은 교재와 교수님의 확인을 기준으로 하고, 실제 환자 정보는 입력하지 마세요.</p>
     </section>
   </div>
 
@@ -69,7 +69,7 @@
         <p class="caseText"></p>
       </section>
       <div class="card">
-        <h2>수행항목 1~37 <span class="sub">술기 확인 · work sheet</span></h2>
+        <h2 id="skillRefTitle">수행항목 1~37 <span class="sub">술기 확인 · work sheet</span></h2>
         <div class="skillref" id="skillRef"></div>
       </div>
     </section>
@@ -85,13 +85,13 @@
         </div>
         <div class="card" style="display:grid;gap:8px;align-content:start">
           <h2>시나리오 작성</h2>
-          <p class="sub" style="margin:0">시나리오 카드의 순서대로 역할표, 장면, 대본을 쓰고 교수님께 제출합니다.</p>
+          <p class="sub" style="margin:0" id="writeNote">시나리오 카드의 순서대로 역할표, 장면, 대본을 쓰고 교수님께 제출합니다.</p>
           <div><a class="btn" id="cardLink" target="_blank" rel="noopener">시나리오 카드 열기</a></div>
           <h3 style="margin-top:6px">정해야 하는 사항</h3>
-          <div class="sub">우리 조가 정한 항목을 체크하세요. 14:40 점검 때 함께 확인합니다.</div>
+          <div class="sub" id="decideNote">우리 조가 정한 항목을 체크하세요. 14:40 점검 때 함께 확인합니다.</div>
           <div id="decideList" style="display:grid;gap:4px"></div>
           <details class="refbox" open>
-            <summary><b>학교 자료 기준</b> <span class="sub">의사진료지시서 · 욕창/낙상 측정도구</span></summary>
+            <summary><b>학교 자료 기준</b> <span class="sub" id="refSub">의사진료지시서 · 욕창/낙상 측정도구</span></summary>
             <dl class="kv" id="refList"></dl>
           </details>
         </div>
@@ -110,7 +110,7 @@
           <button class="slot" type="button" id="modeSelf" aria-pressed="true">우리 조 구현</button>
           <button class="slot" type="button" id="modePeer" aria-pressed="false">다른 조 평가</button>
         </div>
-        <div class="sub">구현 순서: 1조 → 2조 → 3조 (조마다 약 15분). 우리 조 차례가 아니면 "다른 조 평가"를 누르고, 지금 구현하는 조를 골라 평가합니다. 세 조가 모두 끝나면 ⑥ 욕창·낙상 개인 평가로 갑니다.</div>
+        <div class="sub" id="peerNote">구현 순서: 1조 → 2조 → 3조 (조마다 약 15분). 우리 조 차례가 아니면 "다른 조 평가"를 누르고, 지금 구현하는 조를 골라 평가합니다. 세 조가 모두 끝나면 ⑥ 욕창·낙상 개인 평가로 갑니다.</div>
       </div>
       <div class="card" id="peerPanel" hidden></div>
       <div class="card runhead" id="runHead">
@@ -268,7 +268,7 @@
   </section>
 </div>
 <script>document.write('<script src="config.js?t=' + Date.now() + '"><\/script>');</script>
-<script src="common.js?v=20261109d"></script>
+<script src="common.js?v=20261110a"></script>
 <script>
 (function(){
   const $ = id => document.getElementById(id);
@@ -287,8 +287,18 @@
 
   const CARD_URL = "https://claude.ai/artifact/PKDr3mEF76buugYnXVXsKy";
   const ROLES = ["의사","간호사1(리더)","간호사2","환자","보호자"];
-  const DECIDE = ["활력징후","동공반사 결과","GCS 및 의식상태","IICP 증상 여부","폐음 (crackle 또는 wheezing)","BST 수치에 따른 RI sliding 수치"];
-  const STAGES = [
+  const DECIDE = TS.IS_THU
+    ? ["장면 1·2 활력징후 (혈압·맥박·호흡의 쿠싱 징후 변화)","장면 1·2 동공 크기·반사 변화","장면 1·2 GCS 및 의식상태 변화","IICP 증상 (두통·구토)","의사에게 할 SBAR 보고 대사","의사 구두 처방과 되읽기, 처방 수행·재사정"]
+    : ["활력징후","동공반사 결과","GCS 및 의식상태","IICP 증상 여부","폐음 (crackle 또는 wheezing)","BST 수치에 따른 RI sliding 수치"];
+  const STAGES = TS.IS_THU ? [
+    {n:1, mark:"①", title:"목요일 상황 제시", time:"13:00"},
+    {n:2, mark:"②", title:"역할 교대·시나리오 수정", time:"13:20"},
+    {n:3, mark:"③", title:"시나리오 점검", time:"14:00"},
+    {n:4, mark:"④", title:"조별 연습", time:"14:10"},
+    {n:5, mark:"⑤", title:"구현 및 평가", time:"15:00"},
+    {n:7, mark:"⑥", title:"디브리핑 및 성찰", time:"15:50"},
+    {n:8, mark:"⑦", title:"정리 및 마무리", time:"16:40"}
+  ] : [
     {n:1, mark:"①", title:"오리엔테이션", time:"13:00"},
     {n:2, mark:"②", title:"역할·시나리오 작성", time:"13:20"},
     {n:3, mark:"③", title:"시나리오 점검", time:"14:40"},
@@ -298,7 +308,18 @@
     {n:7, mark:"⑦", title:"디브리핑 및 성찰", time:"16:30"},
     {n:8, mark:"⑧", title:"정리 및 마무리", time:"16:50"}
   ];
-  const WED_ROW_STAGE = [1,2,3,3,4,5,7,8]; // SCHEDULE 수요일 줄 → 단계 (휴식은 ③에 포함, ⑥ 개인 평가는 ⑤ 시간 안에서 학생이 엶)
+  // SCHEDULE 줄 → 단계. 수요일: 휴식은 ③에 포함, ⑥ 개인 평가는 ⑤ 시간 안에서 학생이 엶. 목요일: 휴식은 ④에 포함, 개인 평가 없음
+  const ROW_STAGE = {[WED]:[1,2,3,3,4,5,7,8], [THU]:[1,2,3,4,4,5,7,8]};
+  if (!TS.AI_ON) $("aiIntro").textContent = "이번 실습은 이 프로그램으로 운영합니다. 조별로 만든 시나리오를 교수님이 확인해 확정하고, 수행 중에는 모니터·술기 체크·기록을 이 화면에서 하며, 우리 조의 기록으로 디브리핑과 보고서 초안을 만듭니다.";
+  if (!TS.AI_ON) $("aiCaution").textContent = "수치와 판단은 교재와 교수님의 확인을 기준으로 하고, 실제 환자 정보는 입력하지 마세요.";
+  if (TS.IS_THU){
+    $("dayBadge").hidden = false;
+    $("skillRefTitle").innerHTML = '목요일 수행항목 <span class="sub">1~11 신경계 재사정 + 38~43 IICP 악화 대처</span>';
+    $("writeNote").textContent = "수요일에 쓴 우리 조 시나리오 카드를 목요일 상황에 맞게 고칩니다: 역할 교대(수요일에 간호사를 하지 않은 학생이 간호사), 장면 1 재사정 수치, 장면 2 IICP 악화 수치와 의사 SBAR 보고·구두 처방 대사.";
+    $("decideNote").textContent = "우리 조가 정한 항목을 체크하세요. 14:00 점검 때 함께 확인합니다.";
+    $("refSub").textContent = "의사진료지시서 · 목요일 구두 처방(예)";
+  }
+  if (TS.IS_THU) $("peerNote").textContent = "구현 순서: 1조 → 2조 → 3조 (조마다 약 15분). 우리 조 차례가 아니면 \"다른 조 평가\"를 누르고, 지금 구현하는 조를 골라 평가합니다. 세 조가 모두 끝나면 디브리핑으로 갑니다.";
 
   let code = "", group = null, sc = null, run = null, stage = 0, lastAuto = null, lastErr = "";
   const runs = {practice:null, eval:null};
@@ -316,7 +337,7 @@
   document.querySelectorAll(".caseText").forEach(p => p.textContent = TS.CASE.text);
   $("mCase").textContent = TS.CASE.short;
   $("assessCase").textContent = TS.ASSESS_CASE;
-  [["의사 오더", TS.REF.order], ["RI sliding", TS.REF.ri]].forEach(([k, v]) => {
+  (TS.IS_THU ? [["의사 오더", TS.REF.order], ["목요일 구두 처방(예)", TS.REF.thu]] : [["의사 오더", TS.REF.order], ["RI sliding", TS.REF.ri]]).forEach(([k, v]) => {
     const dt = document.createElement("dt"); dt.textContent = k; const dd = document.createElement("dd"); dd.textContent = v; $("refList").append(dt, dd);
   });
 
@@ -408,22 +429,22 @@
     $("login").hidden = true; $("runBody").hidden = false; $("schedBox").hidden = false;
     setWho(); drawSkillRef();
     lastAuto = stageForNow();
-    showStage(lastAuto || (dayKey(nowD()) === THU ? 4 : 1));
+    showStage(lastAuto || 1);
   });
 
   // ---------- 단계 탭 ----------
   function stageForNow(){
-    const d = nowD(), hm = hmOf(d);
-    if (dayKey(d) !== WED) return null; // 목요일은 세부 일정 미정 → 처음에 ④를 열고 학생이 고름
-    const rows = TS.SCHEDULE.find(x => x.date === WED).rows;
+    const d = nowD(), hm = hmOf(d), day = dayKey(d);
+    if (!ROW_STAGE[day]) return null; // 수업 날이 아니면 자동 전환 없음
+    const rows = TS.SCHEDULE.find(x => x.date === day).rows;
     if (hm < rows[0][0]) return 1;
     const i = rows.findIndex(r => hm >= r[0] && hm < r[1]);
-    return i >= 0 ? WED_ROW_STAGE[i] : 7;
+    return i >= 0 ? ROW_STAGE[day][i] : 7;
   }
   function drawTabs(){
     const nav = $("stageTabs"); nav.innerHTML = "";
-    const thu = dayKey(nowD()) === THU, auto = stageForNow();
-    STAGES.filter(s => !thu || s.n >= 4).forEach(s => {
+    const thu = false, auto = stageForNow();
+    STAGES.forEach(s => {
       const b = document.createElement("button"); b.type = "button"; b.className = "stab"; b.setAttribute("role", "tab");
       b.setAttribute("aria-selected", String(s.n === stage));
       b.setAttribute("aria-controls", s.n === 4 || s.n === 5 ? "stSim" : "st" + s.n);
@@ -605,6 +626,7 @@
     const others = TS.GROUPS.filter(g => g.id !== group && g.id !== "ex");
     if (!peerTarget || !others.find(g => g.id === peerTarget)) peerTarget = others[0] ? others[0].id : null;
     box.append(el("h2", "다른 조 평가"), el("div", "지금 구현하는 조를 고르고, 본 대로 술기를 체크한 뒤 잘한 점과 보완할 점을 한마디씩 씁니다. 평가는 교수님과 그 조에게 보입니다.", "sub"));
+    if (TS.IS_THU) box.append(el("div", "볼 점: 어제 기록과 비교해 변화를 말했나 · 담당간호사가 판단을 알리고 역할을 나눴나 · SBAR를 수치로 간결하게 했나 · 구두 처방을 되읽었나 · 처방 수행 뒤 다시 사정했나 · 보호자에게 설명했나. 한마디는 \"언제 + 누가 무엇을 + 왜 중요한지\" 한 문장으로.", "sub"));
     const slots = el("div", null, "slots");
     others.forEach(g => { const b = el("button", g.label, "slot"); b.type = "button"; b.setAttribute("aria-pressed", String(g.id === peerTarget)); b.onclick = () => { peerTarget = g.id; drawPeer(); }; slots.appendChild(b); });
     box.appendChild(slots);

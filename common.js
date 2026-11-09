@@ -6,18 +6,39 @@
   const DEMO = !CFG.API_URL || /[?&]demo\b/.test(location.search);
   const AI_ON = CFG.AI !== false;   // config.js AI: false → AI 없이 진행
 
+  // 날짜별 모드: 11/12(목)이면 목요일 모드 (IICP 악화). 확인용: 주소에 ?day=thu 또는 ?day=wed, ?now=2026-11-12T13:10
+  const THU_DATE = "2026-11-12";
+  const IS_THU = (function(){
+    const q = location.search;
+    if (/[?&]day=thu\b/.test(q)) return true;
+    if (/[?&]day=wed\b/.test(q)) return false;
+    const nq = (/[?&]now=([\d\-T:]+)/.exec(q) || [])[1];
+    const d = nq && !isNaN(new Date(nq)) ? new Date(nq) : new Date();
+    const p = n => String(n).padStart(2, "0");
+    return d.getFullYear() + "-" + p(d.getMonth()+1) + "-" + p(d.getDate()) === THU_DATE;
+  })();
+  const DAY = IS_THU ? "thu" : "wed";
+
   // 상황지침 (work sheet)
-  const CASE = {
+  const CASE_WED = {
     short: "75/M · 개두술·혈종제거술 후 · 신경계중환자실 · 기관내 삽관",
     text: "75세 김길동님은 당뇨병으로 인슐린으로 조절을 하던 중 술에 취해 계단에서 넘어지면서 머리를 부딪쳐 119에 의해 응급실로 이송되었다. 경막내출혈을 진단받고 Craniotomy와 혈종제거술을 받고 신경계 중환자실로 전동되었다. 환자의 왼쪽 손에는 정맥 주사통로가 확보되어 있고 NS 1L가 연결되어 있다. 김길동님은 현재 기관내 삽관 상태이다. 환자의 수술 후 신경계 초기 사정과 중재를 시작하시오. 환자를 위한 치료적 중재 중 낙상과 욕창예방을 위한 간호를 실시하십시오. 마지막으로 처방된 인슐린을 투여하는 간호중재를 시행하십시오."
   };
+  // 목요일 상황지침 (교육용 초안, 교수님 확인): 같은 환자, 수술 후 1일째 IICP 악화
+  const CASE_THU = {
+    short: "75/M · 개두술·혈종제거술 후 1일째 · IICP 악화 · 기관내 삽관",
+    text: "75세 김길동님은 어제 경막내출혈로 Craniotomy와 혈종제거술을 받고 신경계 중환자실에서 치료 중이다(수술 후 1일째). 기관내 삽관 상태로 기계환기 중이며, 왼쪽 손의 정맥 주사통로로 NS 1L가 들어가고 있다. 밤사이 안정적이었으나 새벽부터 두통을 호소하였고 1회 구토하였다. 아침 정규 사정 시간이다. 환자의 신경계를 재사정하고 어제 기록과 비교하시오. 두개내압 상승(IICP) 징후를 발견하면 팀에 알리고 의사에게 SBAR로 보고한 뒤, 처방에 따라 중재하고 다시 사정하시오."
+  };
+  const CASE = IS_THU ? CASE_THU : CASE_WED;
 
   // 학교 자료 기준 (교내자율실습 폴더: "BST 오더지_RI sliding scale.pdf", "욕창 및 낙상_측정도구.pdf")
   const REF = {
     order: "의사진료지시서(신경외과 전문의 이익준): 등록번호 0123456 · DMLD 2000kcal L-tube 통해 식이 · V/S check q 1hr, GCS·pupil reflex 확인 · BST 4/day 식사 전 · IICP 증상·ICP 상승 여부 확인 · L-tube 삽입 11AM · 인슐린 치료 RI Sliding 시작",
     ri: "151–200 mg/dL → RI 2U / 201–250 mg/dL → RI 4U / 251–300 mg/dL → RI 6U / 301–350 mg/dL → RI 8U / 351–400 mg/dL → RI 10U",
     braden: "Braden Scale 6영역(감각지각 1~4, 피부습기 1~4, 활동상태 1~4, 가동성 1~4, 영양섭취 1~4, 피부마찰과 쓸림 1~3) · 점수가 낮을수록 위험: 저위험군 15~18점, 중위험군 13~14점, 고위험군 10~12점, 초고위험군 9점 이하",
-    morse: "Morse Fall Scale: 과거 낙상 경험(3개월 이내) 없음 0/있음 25, 이차적인 진단 0/15, 보행 보조 0/15/30, 정맥수액요법·헤파린 록 0/20, 걸음걸이 0/10/20, 의식장애 0/15 · 0~24점 저위험군, 25~50점 중위험군, 51~125점 고위험군"
+    morse: "Morse Fall Scale: 과거 낙상 경험(3개월 이내) 없음 0/있음 25, 이차적인 진단 0/15, 보행 보조 0/15/30, 정맥수액요법·헤파린 록 0/20, 걸음걸이 0/10/20, 의식장애 0/15 · 0~24점 저위험군, 25~50점 중위험군, 51~125점 고위험군",
+    // 목요일 장면 2: 의사 구두 처방 (교육용 초안, 교수님 확인 필요)
+    thu: "IICP 악화 보고 시 의사 구두 처방(예): 침상머리 30° 올리고 목은 중립(일직선) 유지 · 20% Mannitol 100mL IV · 응급 Brain CT · 15분마다 GCS·동공·V/S 확인 후 보고"
   };
 
   // 욕창·낙상 개인 평가 (학교 자료 "상황지침-욕창, 낙상 체크용.pdf" + "욕창 및 낙상_측정도구.pdf")
@@ -76,7 +97,14 @@
       ["16:30","16:50","디브리핑 및 성찰"],
       ["16:50","17:00","정리 및 마무리"]]},
     {date:"2026-11-12", label:"11/12(목)", rows:[
-      ["13:00","17:00","우리 조 시나리오로 팀 시뮬레이션, 디브리핑, 실습보고서 (세부 일정은 당일 안내)"]]}
+      ["13:00","13:20","수요일 돌아보기 + 목요일 상황 제시", "같은 환자 김길동님, 수술 후 1일째 아침 · 두개내압 상승(IICP) 악화"],
+      ["13:20","14:00","역할 교대, 시나리오 수정", "수요일에 간호사를 하지 않은 학생이 간호사1·2 · 장면 1 재사정, 장면 2 IICP 악화와 의사 SBAR 보고·처방 수행"],
+      ["14:00","14:10","시나리오 점검", "정해야 하는 사항: 장면별 활력징후(쿠싱 징후), 동공 변화, GCS 변화, IICP 증상, 의사 보고 SBAR, 구두 처방"],
+      ["14:10","14:50","조별 시나리오 연습 (최소 2회)", "장면 1 신경계 재사정 → 장면 2 IICP 악화 · 의사 보고와 처방 수행"],
+      ["14:50","15:00","휴식"],
+      ["15:00","15:50","조별 시나리오 구현 및 평가", "1조 → 2조 → 3조 차례로 장면 1~2 구현(조마다 약 15분), 나머지 두 조는 '다른 조 평가'(관찰 분담: 1~11 / 38~43 / SBAR / 담당간호사 / 시간)로 술기 체크와 한마디"],
+      ["15:50","16:40","디브리핑 및 성찰", "악화를 알아차린 시점, SBAR 보고의 질, 처방 수행과 재사정"],
+      ["16:40","17:00","정리 및 마무리", "담당간호사를 중심으로 간호기록 작성(시간 순서, 측정값·보고·처방·결과), 실습보고서 초안"]]}
   ];
 
   const VKEYS = [
@@ -87,7 +115,7 @@
   const GROUPS = [{id:"g1",label:"1조"},{id:"g2",label:"2조"},{id:"g3",label:"3조"},{id:"ex",label:"예시"}];
 
   // 술기 체크리스트 (work sheet 수행항목 1~37; 원본 38번은 37번과 같은 문장이라 뺌)
-  const SKILLS = [
+  const SKILLS_WED = [
     {sec:"신경계 사정", items:[
       [1,"손씻기를 수행한다."],
       [2,"환자에게 자신을 소개하고 환자의 ID를 확인한다."],
@@ -131,14 +159,26 @@
       [37,"사용한 물품을 정리한다 (바늘은 뚜껑을 되씌우지 않은 채 손상성폐기물 전용용기, 소독솜과 주사기는 일반 의료폐기물 전용용기)."]]}
   ];
   // 욕창·낙상 사정(12~26)은 팀 시뮬레이션이 아니라 개인 평가(측정도구)로 대신함
-  SKILLS.forEach(s => { if (s.sec === "욕창 예방" || s.sec === "낙상 예방") s.indiv = true; });
+  SKILLS_WED.forEach(s => { if (s.sec === "욕창 예방" || s.sec === "낙상 예방") s.indiv = true; });
+  // 목요일: 신경계 재사정(1~11) + IICP 악화 대처(38~43, 교육용 초안 · work sheet에 없는 목요일 추가 항목)
+  const SKILLS_THU = [
+    {sec:"신경계 재사정", items: SKILLS_WED[0].items},
+    {sec:"IICP 악화 대처 (목요일 추가)", items:[
+      [38,"GCS 저하, 동공 크기·반사 변화, 활력징후 변화(쿠싱 3징후: 혈압 상승·맥압 증가, 서맥, 불규칙 호흡)를 이전 기록과 비교해 IICP 악화를 알아차린다."],
+      [39,"리더에게 알리고 팀에 응급 상황을 공유하며 역할을 다시 나눈다."],
+      [40,"의사에게 SBAR로 보고한다 (상황, 배경, 사정, 요청)."],
+      [41,"구두 처방을 되읽어(read-back) 확인하고 기록한다."],
+      [42,"처방에 따라 중재한다: 침상머리 30° 올리기, 목 중립 유지, 처방 약물(Mannitol) 확인·투여 준비."],
+      [43,"중재 후 GCS·동공·활력징후를 다시 사정하고 결과를 보고·기록한다."]]}
+  ];
+  const SKILLS = IS_THU ? SKILLS_THU : SKILLS_WED;
   const SIM_SKILLS = SKILLS.filter(s => !s.indiv);
   const SKILL_TOTAL = SIM_SKILLS.reduce((n,s) => n + s.items.length, 0);
   const SCENE_COUNT = 2;
   const skillSec = no => (SKILLS.find(s => s.items.some(it => it[0] === no)) || {}).sec || "";
 
   // 예시 시나리오 (장면 2개): RI sliding은 학교 자료(REF)에 맞춤, 활력징후 등 나머지 수치는 교육용 값
-  const EXAMPLE = {
+  const EXAMPLE_WED = {
     groupName:"예시 조",
     ri:"BST 151–200 mg/dL → RI 2U / 201–250 → RI 4U / 251–300 → RI 6U / 301–350 → RI 8U / 351–400 → RI 10U (의사진료지시서)",
     scenes:[
@@ -166,6 +206,37 @@
       "장면 2에서 RI 투여 전에 무엇을 확인해야 하는지 말해 보세요."
     ]
   };
+
+  // 목요일 예시 시나리오 (수술 후 1일째 IICP 악화) · 수치·처방은 교육용 값 (교수님 확인)
+  // GCS 표기는 수요일과 같이 VT를 1점으로 셈: 수요일 9T(E3 VT M5) → 장면 1 8T(E2 VT M5) → 장면 2 6T(E1 VT M4)
+  const EXAMPLE_THU = {
+    groupName:"예시 조",
+    ri:"",
+    scenes:[
+      {title:"수술 후 1일째 아침 신경계 재사정", time:"08:00", event:"아침 정규 사정. 새벽부터 두통 호소, 구토 1회(밤 근무 간호기록). 기관내 삽관·기계환기 중 (수업에서는 환자가 짧게 말할 수 있게 설정, GCS 언어반응은 VT)", cues:"환자: 머리가 아파요… / (5명 조) 아내: 새벽에 토했어요. 어제보다 더 졸려 보여요 / 어제 기록: GCS 9T(E3 VT M5), 동공 3mm 즉각, BP 146/82, HR 90", expected:"손위생, 환자 확인, 심전도·산소포화도, 동공반사, 활력징후, GCS(VT), IICP 증상, 폐 청진, 어제 기록과 비교해 변화 알아차리기", advance:"재사정을 마치면 (20분 뒤 상태 변화)",
+       script:"간호사1: (손소독 후) 안녕하세요, 오늘 담당 간호사 OOO입니다. 성함이 어떻게 되세요? (입원팔찌로 이름·등록번호 0123456 확인) [1, 2]\n환자: (눈을 겨우 뜨며) 김길동… 머리가 아파요…\n간호사2: 심전도와 산소포화도 확인하겠습니다. [3, 4]\n간호사2: (펜라이트) 오른쪽 4mm 반응이 조금 느리고, 왼쪽 3mm 즉각입니다. [5]\n간호사1: 이름을 불러야 눈을 뜨시네요. 어제는 부르면 바로 뜨셨는데… 손등을 누르면 밀어내십니다. 언어는 VT, GCS 8T입니다. [7, 8, 9]\n간호사2: 혈압 162/78, 맥박 68입니다. 어제보다 혈압은 오르고 맥박은 느려졌어요. [6]\n보호자: 새벽에 토했어요. 어제보다 더 졸려 보여요.",
+       vitals:{bp:"162/78",hr:"68",rr:"14 (기계환기)",spo2:"96",bt:"37.6",gcs:"8T (E2 VT M5)",pupil:"R 4 약간 느림 / L 3 즉각",iicp:"두통 있음, 새벽 구토 1회",lung:"양측 하엽 crackle 약간",bst:"182",look:"눈 뜨기 힘들어함, 이마를 찡그림, 머리 드레싱 건조, 왼손 정맥로 NS 1L"}},
+      {title:"IICP 악화 · 의사 SBAR 보고와 처방 수행", time:"08:20", event:"재사정 20분 뒤 의식이 더 떨어지고 오른쪽 동공이 커짐. 쿠싱 징후(혈압 상승·맥압 증가, 서맥, 불규칙 호흡)", cues:"모니터: BP 184/72, HR 54, 호흡 불규칙 / 환자: 불러도 눈을 뜨지 않고, 통증 자극에 팔을 움츠림 / (5명 조) 아내: 왜 대답을 안 해요?", expected:"IICP 악화 알아차리고 리더에게 알림, 의사에게 SBAR 보고, 구두 처방 되읽기, 침상머리 30°·목 중립, Mannitol 확인·투여 준비, 15분 뒤 GCS·동공·V/S 재사정과 기록, 보호자 설명", advance:"종료 (디브리핑)",
+       script:"간호사2: (동공 확인) 오른쪽 5mm 반응 느림, 왼쪽 3mm 즉각입니다. [5]\n간호사1: 불러도 눈을 안 뜨고, 통증에 팔을 움츠립니다. GCS 6T. 혈압 184/72, 맥박 54예요. IICP 악화가 의심됩니다. 제가 보고할게요, 침상머리 올려 주세요. [38, 39]\n간호사1: (전화) 신경외과 이익준 선생님, 신경계 중환자실 간호사 OOO입니다. S: 김길동님 개두술 후 1일째인데, 20분 사이 GCS가 8T에서 6T로 떨어지고 오른쪽 동공이 5mm로 커져 반응이 느립니다. B: 어제 경막내출혈로 혈종제거술 받았고, 새벽부터 두통과 구토 1회 있었습니다. A: 혈압 184/72, 맥박 54, 호흡 불규칙해서 두개내압 상승이 악화된 것으로 판단됩니다. R: 바로 확인해 주시고 처방 부탁드립니다. [40]\n의사: 침상머리 30도 올리고, 20% 만니톨 100mL 정맥으로 주세요. 응급 CT 잡고, 15분마다 신경계 확인해서 알려 주세요.\n간호사1: 침상머리 30도, 20% 만니톨 100mL IV, 응급 Brain CT, 15분마다 GCS·동공·활력징후 확인. 맞습니까? [41]\n간호사2: (침상머리 30° 올리고 목을 일직선으로) 만니톨 확인하고 준비하겠습니다. [42]\n보호자: 왜 대답을 안 해요? 괜찮은 거죠?\n간호사1: 지금 머리 안 압력이 올라간 것 같아 의사 선생님께 알렸고, 처방대로 치료하고 있습니다. (15분 뒤) GCS·동공·활력징후 다시 확인하겠습니다. [43]",
+       vitals:{bp:"184/72",hr:"54",rr:"10 불규칙 (기계환기 중 자발호흡 불규칙)",spo2:"94",bt:"37.8",gcs:"6T (E1 VT M4)",pupil:"R 5 느림 / L 3 즉각",iicp:"통증 자극에만 반응, 구토 1회 추가",lung:"양측 하엽 crackle",bst:"176",look:"불러도 눈을 뜨지 않음, 통증 자극에 팔을 움츠림, 오른쪽 동공 확대"}}
+    ],
+    roles:[
+      {role:"의사", student: AI_ON ? "" : "학생5", persona:"신경외과 전문의 이익준. 바쁘고 말이 짧음. 전화로 보고를 받고, 보고가 불분명하면 되물음. 아는 정보: 어제 혈종제거술을 한 환자. IICP 악화 보고를 받으면 구두 처방: 침상머리 30°·목 중립, 20% Mannitol 100mL IV, 응급 Brain CT, 15분마다 GCS·동공·V/S 확인 후 보고. 꼭 할 말: \"환자 상태부터 말씀해 주세요.\" / \"GCS가 몇에서 몇으로 떨어졌어요? 동공은요?\" 하지 않을 것: 수치를 먼저 알려 주지 않음, 간호사가 보고하기 전에 처방하지 않음, 간호사가 되읽지 않으면 처방을 다시 말해 주지 않음", aiPlays:AI_ON},
+      {role:"간호사1 (리더)", student:"학생1", persona:"", aiPlays:false},
+      {role:"간호사2", student:"학생2", persona:"", aiPlays:false},
+      {role:"환자 김길동", student:"학생3", persona:"75세 남, 수술 후 1일째. 장면 1: 이름을 불러야 눈을 뜨고(E2), 힘없이 \"머리가 아파요…\" 정도만 말함, 손등을 누르면 밀어냄(M5). 장면 2: 불러도 눈을 뜨지 않고(E1) 말하지 않음, 통증 자극에 팔을 움츠림(M4). 아는 정보: 새벽부터 머리가 아프고 한 번 토함. 하지 않을 것: 장면 2에서 말하거나 눈을 뜨지 않음, 묻지 않은 증상을 먼저 말하지 않음", aiPlays:false},
+      {role:"보호자", student:"학생4", persona:"아내 (5명인 조만). 밤새 곁에 있었고 불안함. 아는 정보: 새벽에 남편이 머리가 아프다고 했고 한 번 토함, 어제보다 더 졸려 보임. 꼭 할 말: \"새벽에 토했어요. 어제보다 더 졸려 보여요.\" / \"왜 대답을 안 해요? 괜찮은 거죠?\" 하지 않을 것: 의학 용어를 쓰지 않음, 간호사가 묻기 전에 정보를 한꺼번에 말하지 않음", aiPlays:false}
+    ],
+    sbar:[
+      {label:"의사 보고 (장면 2)", s:"신경외과 이익준 선생님, 신경계 중환자실 간호사 OOO입니다. 김길동님(75세 남) 개두술 후 1일째, 20분 사이 GCS 8T → 6T로 저하, 오른쪽 동공 5mm 반응 느림", b:"어제 경막내출혈로 Craniotomy·혈종제거술, 당뇨(인슐린), 기관내 삽관·기계환기, 새벽부터 두통·구토 1회", a:"BP 184/72(맥압 증가), HR 54, 호흡 불규칙, SpO₂ 94%, GCS 6T(E1 VT M4), 동공 R 5 느림/L 3 즉각 → IICP 악화로 판단", r:"바로 확인과 처방 부탁드립니다 (처방 받으면 되읽어 확인, 침상머리 30°, 15분마다 재사정)"}
+    ],
+    issues:[],
+    questions:[
+      "장면 1과 장면 2의 GCS·동공·활력징후를 어제 기록과 비교해, IICP 악화라고 판단한 근거를 말해 보세요.",
+      "의사에게 SBAR로 보고할 때 A(사정)와 R(요청)에 무엇을 말할지, 구두 처방은 어떻게 확인할지 말해 보세요."
+    ]
+  };
+  const EXAMPLE = IS_THU ? EXAMPLE_THU : EXAMPLE_WED;
 
   function normalize(o){
     const sc = {groupName:(o&&o.groupName)||"", ri:(o&&o.ri)||"", scenes:[], roles:[], sbar:(o&&o.sbar)||[], issues:(o&&o.issues)||[],
@@ -322,7 +393,14 @@ ${log.filter(e => e.kind !== "members" && e.kind !== "run" && e.kind !== "assess
     ];
     const as = assessFromLog(log);
     if (as.ind.length) facts.push("욕창·낙상 개인 평가: " + as.ind.map(p => `${p.who} Braden ${p.bt}·Morse ${p.mt}`).join(", ") + (as.fin ? ` · 조 최종 Braden ${as.fin.bt}·Morse ${as.fin.mt}` : ""));
-    const ours = [
+    const ours = IS_THU ? [
+      "장면 1에서 어제 기록과 비교해 무엇이 달라졌다고 알아차렸나요? (GCS, 동공, 혈압·맥박, 두통·구토)",
+      "IICP 악화라고 판단한 시점은 언제였고, 근거는 무엇이었나요? 더 일찍 알아차릴 수 있는 단서가 있었나요?",
+      "의사에게 한 SBAR 보고에서 S·B·A·R이 분명했나요? 빠지거나 불필요한 정보는 무엇이었나요?",
+      "구두 처방을 되읽어 확인했나요? 처방 수행(침상머리 30°, 목 중립, Mannitol) 뒤 무엇을 다시 사정했나요?",
+      "응급 상황에서 리더는 역할을 어떻게 다시 나눴나요? 지시와 정보 공유는 분명했나요?",
+      "미리 쓴 대본과 실제 수행이 달랐던 곳은 어디였나요? 대본에 있었지만 빠뜨린 항목이 있었나요?"
+    ] : [
       "기관내 삽관 중인 환자의 의식 수준을 어떻게 사정했나요? 환자가 말을 하더라도 GCS 언어반응을 VT로 기록했나요?",
       "수술 후 첫 사정에서 IICP를 의심할 수 있는 징후(동공, 의식, 활력징후, 오심·구토·두통)를 무엇으로 확인했나요?",
       "욕창·낙상 개인 평가에서 조원끼리 점수가 갈린 영역은 어디였나요? 상황지침의 어떤 문장을 근거로 판단했나요?",
@@ -353,8 +431,8 @@ ${log.filter(e => e.kind !== "members" && e.kind !== "run" && e.kind !== "assess
         "오늘 배운 것 중에서 가장 중요한 것 한 가지를 꼽으라면 무엇인가?",
         "오늘 배운 것 중에서 기억에 남는 것은 무엇인가?"]},
       {title:"4. 고려사항", items:[
-        "환자 및 가족과의 치료적 관계 형성과 교육(낙상·욕창 예방, 인슐린 투여 등)이 이루어졌는가?",
-        "환자안전(정확한 환자확인, 투약원칙, 낙상·흡인 예방)을 준수하였는가?",
+        IS_THU ? "환자 및 가족과의 치료적 관계 형성과 교육(상태 변화 설명, 보호자 정서적 지지)이 이루어졌는가?" : "환자 및 가족과의 치료적 관계 형성과 교육(낙상·욕창 예방, 인슐린 투여 등)이 이루어졌는가?",
+        IS_THU ? "환자안전(정확한 환자확인, 구두 처방 되읽기, 투약원칙, 흡인 예방)을 준수하였는가?" : "환자안전(정확한 환자확인, 투약원칙, 낙상·흡인 예방)을 준수하였는가?",
         "의료진과의 의사소통이 정확하고 원만하게 이루어졌는가?"]}
     ];
     return {facts, stages};
@@ -383,6 +461,20 @@ ${log.filter(e => e.kind !== "members" && e.kind !== "run" && e.kind !== "assess
     if (mem) L.push(mem.text);
     const rk = log.filter(e => e.kind === "run").pop();
     if (rk) L.push(rk.text + " 기록 기준");
+    if (IS_THU){
+      L.push("시나리오: 뇌수술(Craniotomy·혈종제거술) 후 1일째 두개내압 상승(IICP) 악화 환자의 신경계 재사정, 의사 SBAR 보고 및 중재 · 김길동(75세 남)");
+      L.push("");
+      L.push("[항목1 과학적 지식에 근거한 간호 실무 수행]");
+      L.push("- 두개내압 상승(IICP)의 병태생리와 초기·후기 징후 (의식 저하, 동공 변화, 쿠싱 3징후)");
+      L.push("- 신경학적 재사정: GCS(기관내 삽관 시 VT), 직접·간접 동공반사, 이전 기록과 비교");
+      L.push("- IICP 간호중재: 침상머리 30°·목 중립, 삼투성 이뇨제(Mannitol)의 작용과 유의사항, 재사정");
+      L.push("- 응급 상황의 의사소통: SBAR 보고, 구두 처방 되읽기(read-back)");
+      L.push("");
+      L.push("[항목2 간호상황에 따른 핵심기본간호술 수행]");
+      L.push("- 말초산소포화도 측정 / 심전도 모니터링 적용");
+      L.push(`- 팀 시뮬레이션 술기 체크 (장면 1~2): ${st.count}/${st.total} · ` + SIM_SKILLS.map(s => `${s.sec} ${st.bySec[s.sec].done}/${st.bySec[s.sec].total}`).join(", "));
+      if (st.missing.length) L.push("  체크되지 않은 항목: " + st.missing.map(x => `${x[0]}. ${x[1]}`).join(" / "));
+    } else {
     L.push("시나리오: 당뇨병 병력을 가진 뇌수술(Craniotomy·혈종제거술) 환자의 신경계 사정 및 중재 · 김길동(75세 남)");
     L.push("");
     L.push("[항목1 과학적 지식에 근거한 간호 실무 수행]");
@@ -405,6 +497,7 @@ ${log.filter(e => e.kind !== "members" && e.kind !== "run" && e.kind !== "assess
       as.ind.forEach(p => L.push(`  ${p.who}: Braden ${p.bt}점 ${bradenRisk(p.bt)} (${BRADEN.map(d => d.label + " " + p.b[d.k]).join(", ")}) / Morse ${p.mt}점 ${morseRisk(p.mt)} (${MORSE.map(d => d.label + " " + p.m[d.k]).join(", ")})`));
       if (as.fin) L.push(`  조 최종: Braden ${as.fin.bt}점 ${bradenRisk(as.fin.bt)} / Morse ${as.fin.mt}점 ${morseRisk(as.fin.mt)}`);
     } else L.push("  (개인 평가 기록 없음)");
+    }
     L.push("");
     L.push("[항목3 비판적 사고를 활용한 간호과정 적용]");
     ["사정내용 분석 및 추가 사정할 내용","관련 간호진단","간호 목표","중재 계획","평가 및 재사정 계획"].forEach(x => L.push("- " + x + ":"));
@@ -448,7 +541,7 @@ ${log.filter(e => e.kind !== "members" && e.kind !== "run" && e.kind !== "assess
   }
 
   // 장면 순서: 1 신경계 초기 사정 → 2 인슐린 피하주사 (인슐린 장면 = 0부터 세어 1). 욕창·낙상은 개인 평가
-  const INSULIN_SCENE = 1;
-  window.TS = {DEMO, AI_ON, CASE, REF, SCHEDULE, INSULIN_SCENE, SCENE_COUNT, VKEYS, GROUPS, SKILLS, SIM_SKILLS, SKILL_TOTAL, skillSec,
+  const INSULIN_SCENE = IS_THU ? -1 : 1;   // 목요일에는 인슐린 장면 없음
+  window.TS = {DEMO, AI_ON, IS_THU, DAY, THU_DATE, CASE, REF, SCHEDULE, INSULIN_SCENE, SCENE_COUNT, VKEYS, GROUPS, SKILLS, SIM_SKILLS, SKILL_TOTAL, skillSec,
     ASSESS_CASE, BRADEN, MORSE, ASSESS_KEY, peerText, groupLabelOf, bradenRisk, morseRisk, sumOf, assessText, parseAssess, assessFromLog, EXAMPLE, normalize, call, errText, convertPrompt, parseJSON, rolePrompt, debriefPrompt, skillStatus, fixedDebrief, reportDraft};
 })();
