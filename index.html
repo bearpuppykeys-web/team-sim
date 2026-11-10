@@ -465,12 +465,12 @@
     if (n === 7) drawDebrief();
     if (n === 8) drawClose();
   }
-  // 수업 날에는 시각이 바뀌면 그 단계 탭을 엶 (그 사이에는 학생이 다른 탭을 눌러 볼 수 있음)
+  // 시각이 바뀌어도 탭은 자동으로 넘기지 않음 (수업 진행이 빨라지거나 늦어질 수 있음, 2026-11-10 교수님 결정)
+  // 일정표와 탭의 "· 지금" 표시만 새로 그림. 탭 이동은 교수님 안내에 따라 학생이 누름
   setInterval(() => {
     drawSchedule();
     if ($("runBody").hidden) return;
-    const s = stageForNow();
-    if (s && s !== lastAuto){ lastAuto = s; showStage(s); } else drawTabs();
+    drawTabs();
   }, 30000);
 
   // 시나리오 확정 전 안내
