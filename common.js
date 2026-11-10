@@ -172,6 +172,18 @@
       [43,"중재 후 GCS·동공·활력징후를 다시 사정하고 결과를 보고·기록한다."]]}
   ];
   const SKILLS = IS_THU ? SKILLS_THU : SKILLS_WED;
+  // work sheet 핵심기본간호술과 수업에서 하는 곳
+  const CORE_SKILLS = IS_THU ? [
+    ["말초산소포화도 측정", "팀 · 장면 1~2 (수행항목 4번, 재측정 포함)"],
+    ["심전도 모니터링 적용", "팀 · 장면 1~2 (수행항목 3번, 맥박·리듬 변화 확인)"],
+    ["욕창관리 및 낙상예방간호", "수요일 개인 평가에서 함"],
+    ["피하주사 (인슐린)", "수요일 장면 2에서 함"]
+  ] : [
+    ["말초산소포화도 측정", "팀 · 장면 1 (수행항목 4번)"],
+    ["심전도 모니터링 적용", "팀 · 장면 1 (수행항목 3번)"],
+    ["욕창관리 및 낙상예방간호", "개인 평가 · Braden·Morse (수행항목 12~26번)"],
+    ["피하주사 (인슐린)", "팀 · 장면 2 (수행항목 27~37번)"]
+  ];
   const SIM_SKILLS = SKILLS.filter(s => !s.indiv);
   const SKILL_TOTAL = SIM_SKILLS.reduce((n,s) => n + s.items.length, 0);
   const SCENE_COUNT = 2;
@@ -542,6 +554,6 @@ ${log.filter(e => e.kind !== "members" && e.kind !== "run" && e.kind !== "assess
 
   // 장면 순서: 1 신경계 초기 사정 → 2 인슐린 피하주사 (인슐린 장면 = 0부터 세어 1). 욕창·낙상은 개인 평가
   const INSULIN_SCENE = IS_THU ? -1 : 1;   // 목요일에는 인슐린 장면 없음
-  window.TS = {DEMO, AI_ON, IS_THU, DAY, THU_DATE, CASE, REF, SCHEDULE, INSULIN_SCENE, SCENE_COUNT, VKEYS, GROUPS, SKILLS, SIM_SKILLS, SKILL_TOTAL, skillSec,
+  window.TS = {DEMO, AI_ON, IS_THU, DAY, THU_DATE, CORE_SKILLS, CASE, REF, SCHEDULE, INSULIN_SCENE, SCENE_COUNT, VKEYS, GROUPS, SKILLS, SIM_SKILLS, SKILL_TOTAL, skillSec,
     ASSESS_CASE, BRADEN, MORSE, ASSESS_KEY, peerText, groupLabelOf, bradenRisk, morseRisk, sumOf, assessText, parseAssess, assessFromLog, EXAMPLE, normalize, call, errText, convertPrompt, parseJSON, rolePrompt, debriefPrompt, skillStatus, fixedDebrief, reportDraft};
 })();
