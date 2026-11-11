@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261110c">
+<link rel="stylesheet" href="style.css?v=20261112a">
 </head>
 <body>
 <div class="wrap">
@@ -245,8 +245,8 @@
           </div>
         </div>
         <div class="card" style="display:grid;gap:10px;align-content:start">
-          <h2>자기성찰 <span class="sub">실습보고서 항목5</span></h2>
-          <div class="sub">여기 쓴 내용은 ⑧에서 실습보고서 초안을 복사할 때 함께 들어갑니다. 이 노트북에만 저장됩니다.</div>
+          <h2>자기성찰 <span class="sub">구두 발표 · 실습보고서 항목5</span></h2>
+          <div class="sub"><b>장점과 보완할 점은 조원이 돌아가며 말로 발표합니다.</b> 아래 칸은 발표 준비 메모로 써도 되고 비워 두어도 됩니다. 쓴 내용은 마지막 탭(정리 및 마무리)에서 실습보고서 초안을 복사할 때 함께 들어갑니다. 이 노트북에만 저장됩니다.</div>
           <div id="reflBox" class="refl"></div>
         </div>
       </div>
@@ -261,7 +261,7 @@
           <li>아래 버튼으로 실습보고서 초안을 복사해 보고서 파일에 붙여 넣습니다.</li>
           <li>항목3 간호과정과 간호기록지(S·O·A·P·I·E)를 수행 기록을 근거로 정리합니다.</li>
           <li>SBAR는 조가 미리 쓴 예상 인수인계입니다. 실제로 한 인수인계로 고쳐 씁니다.</li>
-          <li>자기성찰의 나의 장점·보완할 점은 학생별로 작성합니다.</li>
+          <li>자기성찰(장점·보완할 점)은 디브리핑 시간에 구두로 발표합니다. 보고서에는 발표한 내용을 학생별로 적습니다.</li>
         </ol>
         <div class="row"><button class="btn" id="copyBtn" type="button">실습보고서 초안 복사</button><span class="status" id="copyStatus"></span></div>
       </div>
@@ -269,7 +269,7 @@
   </section>
 </div>
 <script>document.write('<script src="config.js?t=' + Date.now() + '"><\/script>');</script>
-<script src="common.js?v=20261110c"></script>
+<script src="common.js?v=20261112a"></script>
 <script>
 (function(){
   const $ = id => document.getElementById(id);
@@ -278,6 +278,10 @@
     get(k, d){ try{ const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; }catch(e){ return d; } },
     set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
   };
+  // 날짜별로 따로 저장하는 칸(점검 답·다른 조 평가·자기성찰): 키 끝에 날짜를 붙임 (2026-11-11 추가)
+  // 11/11(수)에는 날짜 없는 예전 키에 쓴 내용도 그대로 읽어서, 이미 입력한 글이 사라지지 않게 함
+  const dayK = base => base + ":" + dayKey(nowD());
+  const dayGet = (base, d) => { let v = store.get(dayK(base), null); if (v == null && dayKey(nowD()) === "2026-11-11") v = store.get(base, null); return v == null ? d : v; };
 
   // 지금 시각 (확인용: 주소에 ?now=2026-11-11T15:10 을 붙이면 그 시각부터 흐름)
   const T0 = Date.now(), NOW_Q = (/[?&]now=([\d\-T:]+)/.exec(location.search) || [])[1];
@@ -311,7 +315,7 @@
   ];
   // SCHEDULE 줄 → 단계. 수요일: 휴식은 ③에 포함, ⑥ 개인 평가는 ⑤ 시간 안에서 학생이 엶. 목요일: 휴식은 ④에 포함, 개인 평가 없음
   const ROW_STAGE = {[WED]:[1,2,3,3,4,5,7,8], [THU]:[1,2,3,4,4,5,7,8]};
-  if (!TS.AI_ON) $("aiIntro").textContent = "이번 실습은 이 프로그램으로 운영합니다. 조별로 만든 시나리오를 교수님이 확인해 확정하고, 수행 중에는 모니터·술기 체크·기록을 이 화면에서 하며, 우리 조의 기록으로 디브리핑과 보고서 초안을 만듭니다.";
+  if (!TS.AI_ON) $("aiIntro").textContent = TS.IS_THU ? "이번 실습은 이 프로그램으로 운영합니다. 오늘은 시나리오 승인 없이 바로 진행하며(화면 수치는 목요일 예시 값), 수행 중에는 모니터·술기 체크·기록을 이 화면에서 하고, 우리 조의 기록으로 디브리핑과 보고서 초안을 만듭니다." : "이번 실습은 이 프로그램으로 운영합니다. 조별로 만든 시나리오를 교수님이 확인해 확정하고, 수행 중에는 모니터·술기 체크·기록을 이 화면에서 하며, 우리 조의 기록으로 디브리핑과 보고서 초안을 만듭니다.";
   if (!TS.AI_ON) $("aiCaution").textContent = "수치와 판단은 교재와 교수님의 확인을 기준으로 하고, 실제 환자 정보는 입력하지 마세요.";
   if (TS.IS_THU){
     $("dayBadge").hidden = false;
@@ -422,15 +426,21 @@
     $("enterBtn").disabled = true; $("loginStatus").textContent = "불러오는 중…";
     const r = await TS.call("getScenario", {code, g:group});
     $("enterBtn").disabled = false;
-    if (!r.ok){ $("loginStatus").textContent = TS.errText(r.error); return; }
+    // 목요일(승인 없이 진행): 수업 코드가 틀린 경우만 막고, 서버 연결 문제는 예시 시나리오로 그냥 들어감
+    let offline = false;
+    if (!r.ok){
+      if (!NO_APPROVAL || r.error === "code"){ $("loginStatus").textContent = TS.errText(r.error); return; }
+      offline = true;
+    }
     // 13:00에는 시나리오가 없으므로 확정 여부는 ③④⑤에서 확인
-    sc = r.scenario || null;
+    sc = pickScenario(r.scenario);
     try{ localStorage.setItem("teamSim:code", code); localStorage.setItem("teamSim:group", group); }catch(e){}
     store.set("teamSim:members", members);
     $("login").hidden = true; $("runBody").hidden = false; $("schedBox").hidden = false;
     setWho(); drawSkillRef();
     lastAuto = stageForNow();
     showStage(lastAuto || 1);
+    if (offline) alert("기록 서버에 연결되지 않아 이 노트북에서만 진행합니다. 시뮬레이션은 그대로 할 수 있습니다. (교수님 화면에는 기록이 보이지 않을 수 있습니다)");
   });
 
   // ---------- 단계 탭 ----------
@@ -473,12 +483,20 @@
     drawTabs();
   }, 30000);
 
+  // 목요일(2026-11-12 교수님 결정): 시나리오 승인 없이 진행 → 서버 저장본 대신 늘 목요일 예시 시나리오를 씀
+  // (서버에는 수요일 저장본이 남아 있을 수 있음). 학생은 카드에 쓴 대본대로 연기하고, 화면 수치는 예시 값
+  const NO_APPROVAL = TS.IS_THU;
+  function pickScenario(s){
+    if (!NO_APPROVAL) return s || null;
+    const ex = JSON.parse(JSON.stringify(TS.EXAMPLE)); ex.groupName = ""; return ex;
+  }
   // 시나리오 확정 전 안내
   async function reloadScenario(){
     const r = await TS.call("getScenario", {code, g:group});
     if (!r.ok){ lastErr = TS.errText(r.error); return false; }
     lastErr = "";
-    if (r.scenario){ sc = r.scenario; setWho(); return true; }
+    const s = pickScenario(r.scenario);
+    if (s){ sc = s; setWho(); return true; }
     return false;
   }
   function waitBox(el, what){
@@ -553,11 +571,13 @@
     const rb = el("button", "최신 내용 다시 불러오기", "btn ghost"); rb.type = "button";
     rb.onclick = async () => { rb.disabled = true; await reloadScenario(); rb.disabled = false; drawSummary(); };
     head.append(h, rb); box.appendChild(head);
-    box.appendChild(el("div", "교수님이 확정한 내용입니다. 14:40~14:50에 조원과 함께 확인하고, 14:50~15:00은 휴식입니다.", "sub"));
+    box.appendChild(el("div", NO_APPROVAL
+      ? "오늘은 시나리오 승인 없이 바로 진행합니다. 화면의 수치는 목요일 예시 값이고, 대사와 행동은 우리 조가 카드에 쓴 대본대로 합니다."
+      : "교수님이 확정한 내용입니다. 14:40~14:50에 조원과 함께 확인하고, 14:50~15:00은 휴식입니다.", "sub"));
     // 점검 질문 (AI가 만들고 교수님이 확정) → 조가 답을 써서 교수님 화면으로 보냄
     const qs = (sc.questions || []).filter(Boolean);
     if (qs.length){
-      const qk = "teamSim:checkAns:" + group, saved = store.get(qk, {});
+      const qBase = "teamSim:checkAns:" + group, qk = dayK(qBase), saved = dayGet(qBase, {});
       const qbox = el("div", null, "qcheck");
       qbox.append(el("h3", "점검 질문 " + qs.length + "개"), el("div", "조원과 이야기한 뒤 근거를 들어 답을 쓰고 보내세요. 교수님 화면에 보입니다.", "sub"));
       qs.forEach((q, i) => {
@@ -634,7 +654,7 @@
     others.forEach(g => { const b = el("button", g.label, "slot"); b.type = "button"; b.setAttribute("aria-pressed", String(g.id === peerTarget)); b.onclick = () => { peerTarget = g.id; drawPeer(); }; slots.appendChild(b); });
     box.appendChild(slots);
     if (!peerTarget) return;
-    const key = "teamSim:peer:" + group + ">" + peerTarget, d = store.get(key, {items:[], good:"", fix:""});
+    const pBase = "teamSim:peer:" + group + ">" + peerTarget, key = dayK(pBase), d = dayGet(pBase, {items:[], good:"", fix:""});
     const save = () => store.set(key, d);
     const cnt = el("b", null); cnt.style.fontFamily = "var(--font-mono)";
     const upd = () => cnt.textContent = d.items.length + "/" + TS.SKILL_TOTAL;
@@ -1012,9 +1032,10 @@
     $("debrief").textContent = res.ok ? res.text : TS.errText(res.error) + " 위의 질문으로 진행하세요.";
   });
 
-  const rKey = () => "teamSim:refl:" + group;
+  const rBase = () => "teamSim:refl:" + group;
+  const rKey = () => dayK(rBase());
   function drawRefl(){
-    const refl = store.get(rKey(), {group:["","",""], groupFix:"", mine:{}});
+    const refl = dayGet(rBase(), {group:["","",""], groupFix:"", mine:{}});
     const save = () => store.set(rKey(), refl);
     const box = $("reflBox"); box.innerHTML = "";
     const field = (label, val, set, area) => {
@@ -1038,7 +1059,7 @@
     });
   }
   function reflForReport(){
-    const refl = store.get(rKey(), {group:[], groupFix:"", mine:{}});
+    const refl = dayGet(rBase(), {group:[], groupFix:"", mine:{}});
     return {group: refl.group || [], groupFix: refl.groupFix || "",
       mine: members.map(m => Object.assign({who: m.id + " " + m.name}, (refl.mine || {})[m.id] || {})).filter(x => x.good || x.fix)};
   }

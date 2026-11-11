@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20261110c">
+<link rel="stylesheet" href="style.css?v=20261112a">
 <meta name="robots" content="noindex">
 </head>
 <body>
@@ -78,7 +78,7 @@
   </section>
 </div>
 <script>document.write('<script src="config.js?t=' + Date.now() + '"><\/script>');</script>
-<script src="common.js?v=20261110c"></script>
+<script src="common.js?v=20261112a"></script>
 <script>
 (function(){
   const $ = id => document.getElementById(id);
@@ -130,7 +130,7 @@
   }
   function selectSlot(id){ current = id; draft = store[id] ? JSON.parse(JSON.stringify(store[id])) : null; $("issuesWrap").hidden = true; $("convertStatus").textContent = ""; drawSlots(); renderEditor(); }
   $("exampleBtn").onclick = () => { draft = JSON.parse(JSON.stringify(TS.EXAMPLE)); renderEditor(); renderIssues([{level:"확인 필요", where:"전체", text: TS.IS_THU
-    ? "목요일 예시: 장면 1 수술 후 1일째 신경계 재사정(GCS 8T, 우측 동공 4mm 느림, 두통·구토), 장면 2 IICP 악화(GCS 6T, 우측 동공 5mm, BP 184/72·HR 54 쿠싱 징후)와 의사 SBAR 보고·구두 처방(침상머리 30°, 20% Mannitol 100mL IV, 응급 CT, 15분마다 재사정). 수치·처방은 Claude가 만든 교육용 값이니 확인해 주세요."
+    ? "목요일 예시: 장면 1 수술 후 1일째 신경계 재사정(GCS 8T, 우측 동공 4mm 느림, 두통·구토), 장면 2 IICP 악화(GCS 6T, 우측 동공 5mm, BP 184/72·HR 54 쿠싱 징후)와 의사 SBAR 보고·구두 처방(침상머리 30°, 20% Mannitol 100mL IV, Nicardipine 6mg IV(처방·되읽기까지만), 응급 CT, 15분마다 재사정). 수치·처방은 Claude가 만든 교육용 값이니 확인해 주세요."
     : "장면은 2개(신경계 초기 사정, 인슐린 피하주사)이고, 욕창·낙상은 수행 뒤 학생이 각자 평가합니다. RI sliding·등록번호는 학교 자료(의사진료지시서)에 맞췄고, 활력징후·GCS·BST 등 나머지 수치는 Claude가 만든 교육용 값입니다."}]); };
   if (TS.IS_THU){ $("dayBadge").hidden = false; $("exampleBtn").textContent = "목요일 예시 시나리오 불러오기"; }
   $("convertBtn").onclick = async () => {
